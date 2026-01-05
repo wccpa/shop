@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-200">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Weekend Custom Creations Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        html, body { background-color: #e5e7eb; height: 100%; margin: 0; padding: 0; -webkit-overflow-scrolling: touch; }
+        #root { min-height: 100%; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes pulse-red { 0%, 100% { color: #ef4444; } 50% { color: #b91c1c; } }
+        .animate-pulse-text { animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .sale-glow { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .ebay-glow { box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .shadow-top { box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06); }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-200 text-gray-800 font-sans">
+    <div id="root"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, increment, getDocs, where, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        const YOUR_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDIb9_YrO6HjexOeNwEiONvEHSw02dRNH8",
+            authDomain: "wccshop-242bb.firebaseapp.com",
+            projectId: "wccshop-242bb",
+            storageBucket: "wccshop-242bb.firebasestorage.app",
+            messagingSenderId: "46084474652",
+            appId: "1:46084474652:web:381d9cd58053ec44811cd9",
+            measurementId: "G-1QD89WKEV5"
+        };
+
+        let firebaseConfig;
+        let appId = 'default-shop';
+        window.isUsingEnvConfig = false;
+        
+        try {
+            if (YOUR_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
+                firebaseConfig = YOUR_FIREBASE_CONFIG;
+                window.isUsingEnvConfig = false;
+            } else if (typeof __firebase_config !== 'undefined') {
+                firebaseConfig = JSON.parse(__firebase_config);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                window.isUsingEnvConfig = true;
+            }
+        } catch(e) { console.error(e); }
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            window.db = getFirestore(app);
+            window.auth = getAuth(app);
+            window.collection = collection;
+            window.addDoc = addDoc;
+            window.updateDoc = updateDoc;
+            window.deleteDoc = deleteDoc;
+            window.doc = doc;
+            window.getDoc = getDoc;
+            window.onSnapshot = onSnapshot;
+            window.signInAnonymously = signInAnonymously;
+            window.signInWithCustomToken = signInWithCustomToken;
+            window.onAuthStateChanged = onAuthStateChanged;
+            window.increment = increment;
+            window.getDocs = getDocs;
+            window.where = where;
+            window.query = query;
+            window.writeBatch = writeBatch;
+            window.appId = appId;
+            window.firebaseReady = true;
+
+            window.getCollectionRef = (collectionName) => {
+                if (window.isUsingEnvConfig) {
+                    return window.collection(window.db, 'artifacts', window.appId, 'public', 'data', collectionName);
+                } else {
+                    return window.collection(window.db, collectionName);
+                }
+            };
+            
+            window.getDocRef = (collectionName, docId) => {
+                 if (window.isUsingEnvConfig) {
+                    return window.doc(window.db, 'artifacts', window.appId, 'public', 'data', collectionName, docId);
+                } else {
+                    return window.doc(window.db, collectionName, docId);
+                }
+            };
+        } else { window.firebaseReady = false; }
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        const getZipState = (zip) => {
+            if (!zip || zip.length < 3) return null;
+            const prefix = parseInt(zip.substring(0, 3), 10);
+            if (isNaN(prefix)) return null;
+            const ranges = [
+                { min: 350, max: 369, name: 'Alabama', restricted: false }, { min: 995, max: 999, name: 'Alaska', restricted: true },
+                { min: 850, max: 869, name: 'Arizona', restricted: false }, { min: 716, max: 729, name: 'Arkansas', restricted: false },
+                { min: 900, max: 961, name: 'California', restricted: false }, { min: 800, max: 816, name: 'Colorado', restricted: false },
+                { min: 60, max: 69, name: 'Connecticut', restricted: false }, { min: 197, max: 199, name: 'Delaware', restricted: false },
+                { min: 200, max: 205, name: 'DC', restricted: false }, { min: 320, max: 349, name: 'Florida', restricted: false },
+                { min: 300, max: 319, name: 'Georgia', restricted: false }, { min: 398, max: 399, name: 'Georgia', restricted: false },
+                { min: 967, max: 968, name: 'Hawaii', restricted: true }, { min: 832, max: 839, name: 'Idaho', restricted: false },
+                { min: 600, max: 629, name: 'Illinois', restricted: false }, { min: 460, max: 479, name: 'Indiana', restricted: false },
+                { min: 500, max: 528, name: 'Iowa', restricted: false }, { min: 660, max: 679, name: 'Kansas', restricted: false },
+                { min: 400, max: 427, name: 'Kentucky', restricted: false }, { min: 700, max: 715, name: 'Louisiana', restricted: false },
+                { min: 39, max: 49, name: 'Maine', restricted: false }, { min: 206, max: 219, name: 'Maryland', restricted: false },
+                { min: 10, max: 27, name: 'Massachusetts', restricted: false }, { min: 480, max: 499, name: 'Michigan', restricted: false },
+                { min: 550, max: 567, name: 'Minnesota', restricted: false }, { min: 386, max: 397, name: 'Mississippi', restricted: false },
+                { min: 630, max: 658, name: 'Missouri', restricted: false }, { min: 590, max: 599, name: 'Montana', restricted: false },
+                { min: 680, max: 693, name: 'Nebraska', restricted: false }, { min: 889, max: 899, name: 'Nevada', restricted: false },
+                { min: 30, max: 38, name: 'New Hampshire', restricted: false }, { min: 70, max: 89, name: 'New Jersey', restricted: false },
+                { min: 870, max: 884, name: 'New Mexico', restricted: false }, { min: 100, max: 149, name: 'New York', restricted: false },
+                { min: 270, max: 289, name: 'North Carolina', restricted: false }, { min: 580, max: 588, name: 'North Dakota', restricted: false },
+                { min: 430, max: 458, name: 'Ohio', restricted: false }, { min: 730, max: 749, name: 'Oklahoma', restricted: false },
+                { min: 970, max: 979, name: 'Oregon', restricted: false }, { min: 150, max: 196, name: 'Pennsylvania', restricted: false },
+                { min: 28, max: 29, name: 'Rhode Island', restricted: false }, { min: 290, max: 299, name: 'South Carolina', restricted: false },
+                { min: 570, max: 577, name: 'South Dakota', restricted: false }, { min: 370, max: 385, name: 'Tennessee', restricted: false },
+                { min: 750, max: 799, name: 'Texas', restricted: false }, { min: 840, max: 847, name: 'Utah', restricted: false },
+                { min: 50, max: 59, name: 'Vermont', restricted: false }, { min: 220, max: 246, name: 'Virginia', restricted: false },
+                { min: 980, max: 994, name: 'Washington', restricted: false }, { min: 247, max: 269, name: 'West Virginia', restricted: false },
+                { min: 530, max: 549, name: 'Wisconsin', restricted: false }, { min: 820, max: 831, name: 'Wyoming', restricted: false },
+                { min: 6, max: 9, name: 'Puerto Rico/VI', restricted: true }, { min: 969, max: 969, name: 'Guam/MP', restricted: true }, 
+                { min: 90, max: 99, name: 'Military (AE/AA/AP)', restricted: true }, { min: 340, max: 340, name: 'Military (AA)', restricted: true },
+                { min: 962, max: 966, name: 'Military (AP)', restricted: true }
+            ];
+            const found = ranges.find(r => prefix >= r.min && prefix <= r.max);
+            return found ? found : { name: "Unknown/Invalid", restricted: true };
+        };
+
+        const Icon = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Icons = {
+            Cart: (p) => <Icon {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></Icon>,
+            X: (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>,
+            Plus: (p) => <Icon {...p}><path d="M5 12h14"/><path d="M12 5v14"/></Icon>,
+            Minus: (p) => <Icon {...p}><path d="M5 12h14"/></Icon>,
+            Trash: (p) => <Icon {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Icon>,
+            Left: (p) => <Icon {...p}><path d="m15 18-6-6 6-6"/></Icon>,
+            Right: (p) => <Icon {...p}><path d="m9 18 6-6-6-6"/></Icon>,
+            Sort: (p) => <Icon {...p}><path d="m21 16-4 4-4-4"/><path d="m17 20V4"/><path d="m3 8 4-4 4 4"/><path d="m7 4v16"/></Icon>,
+            Clock: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>,
+            Alert: (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></Icon>,
+            Search: (p) => <Icon {...p}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></Icon>,
+            Tag: (p) => <Icon {...p}><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></Icon>,
+            External: (p) => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></Icon>,
+            Truck: (p) => <Icon {...p}><rect x="1" y="3" width="15" height="13" rx="2" ry="2"/><line x1="16" y1="8" x2="20" y2="8"/><line x1="23" y1="22" x2="23" y2="22"/><line x1="16" y1="16" x2="23" y2="16"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></Icon>,
+            Home: (p) => <Icon {...p}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>,
+            MapPin: (p) => <Icon {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>,
+            Share: (p) => <Icon {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></Icon>,
+            Envelope: (p) => <Icon {...p}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon>
+        };
+
+        const CONFIG = {
+            storeName: "ONLINE STORE",
+            currencySymbol: "$",
+            paypalEmail: "bryan.wedekind@gmail.com", 
+            paypalCurrency: "USD",
+            // GOOGLE FORM CONFIGURATION:
+            googleFormUrl: "https://docs.google.com/forms/d/e/1FAIpQLSeZtmsZxa2tsR_VKK8gqxGNFZH9IFTRy0mLFT99TBEJ9stW4w/viewform", 
+            googleFormEntryId: "1132811514", 
+            shipping: {
+                enabled: true,
+                originZip: "17820", 
+                boxBaseRate: 8.00,        
+                envelopeBaseRate: 4.00, 
+                ratePerLb: 2.00,             
+                unitLabel: "lb",
+                additionalItemFee: 1.00, 
+                freeShippingThreshold: 0, 
+                restriction: "We only ship to the lower 48 states.",
+                zoneSurchargeMultiplier: 0.50 
+            },
+            reservationTime: 30 * 60 * 1000 
+        };
+
+        const formatTime = (expiresAt) => {
+            const totalSeconds = Math.floor((expiresAt - Date.now()) / 1000);
+            if (totalSeconds <= 0) return "00:00";
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        const ProductCard = ({ product, isSale, isOutOfStock, available, safeImages, handleProductClick, addToCart, CONFIG, Icons }) => {
+            const [qty, setQty] = useState(1);
+            const isEbay = product.ebayLink && product.ebayLink.length > 0;
+            const isLocalPickupOnly = product.localPickupOnly === true;
+            const isLocalPickupAvailable = product.localPickupAvailable === true;
+            const hasSizes = product.sizes && product.sizes.length > 0;
+            const isFreeShippingItem = product.flatRateShipping && parseFloat(product.flatRateAmount) === 0 && !isEbay;
+            const hasCustomFields = product.customFields && product.customFields.length > 0;
+
+            const handleAddToCart = (e) => {
+                if(e) e.stopPropagation();
+                if (hasSizes || hasCustomFields) {
+                    handleProductClick(product); 
+                } else {
+                    addToCart(product, qty, {}, false, e); 
+                    setQty(1); 
+                }
+            };
+            
+            const btnText = isOutOfStock ? "Sold" : (hasSizes || hasCustomFields ? "Options" : "Add");
+
+            return (
+                <div className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border flex flex-col relative group ${isSale ? 'border-transparent ring-2 ring-red-500 sale-glow' : 'border-gray-200'}`} onClick={() => !isOutOfStock && handleProductClick(product)}>
+                    
+                    <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 items-start pointer-events-none">
+                        {isSale && !isEbay && <div className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 animate-pulse mb-1"><Icons.Tag size={10} /> SALE</div>}
+                        {isFreeShippingItem && <div className="bg-green-700 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 mb-1"><Icons.Truck size={10} /> FREE SHIPPING</div>}
+                        {isLocalPickupOnly && <div className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 mb-1"><Icons.MapPin size={10} /> PICKUP ONLY</div>}
+                        {!isLocalPickupOnly && isLocalPickupAvailable && <div className="bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 mb-1"><Icons.MapPin size={10} /> PICKUP AVAIL</div>}
+                        {isEbay && <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 mb-1"><Icons.External size={10} /> eBay</div>}
+                    </div>
+                    
+                    <div className={`relative w-full aspect-square overflow-hidden bg-white p-1 ${isOutOfStock ? 'cursor-default' : 'cursor-pointer'}`}>
+                        <img src={safeImages[0]} alt={product.title} className={`w-full h-full object-contain transition-transform duration-500 ${isOutOfStock ? 'grayscale opacity-70' : 'group-hover:scale-105'}`} />
+                        {isOutOfStock && <div className="absolute inset-0 flex items-center justify-center bg-black/20"><span className="bg-red-600 text-white px-2 py-1 text-xs font-bold rounded shadow-lg">SOLD OUT</span></div>}
+                    </div>
+                    
+                    <div className="p-3 md:p-4 flex-grow flex flex-col">
+                        <div className={`flex-grow ${isOutOfStock ? 'cursor-default' : 'cursor-pointer'}`}>
+                            <p className="text-[10px] font-semibold text-gray-500 mb-0.5 uppercase tracking-wide truncate">{product.category}</p>
+                            <h3 className="font-bold text-sm leading-tight mb-1 hover:text-blue-600 transition-colors line-clamp-2 h-11">{product.title}</h3>
+                        </div>
+                        
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className={`flex items-baseline ${isSale ? 'text-red-600' : 'text-gray-900'}`}>
+                                    {hasSizes && <span className="text-[10px] font-semibold text-gray-500 mr-1 uppercase">Starting at</span>}
+                                    <span className="text-base md:text-lg font-bold">{CONFIG.currencySymbol}{product.price.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {product.ebayLink ? (
+                                <a href={product.ebayLink} target="_blank" rel="noopener noreferrer" className="block w-full text-center px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-blue-600 hover:bg-blue-700 text-white">
+                                    eBay <Icons.External size={10} className="inline"/>
+                                </a>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {product.unlimitedStock && !hasSizes && !hasCustomFields && (
+                                        <div className="flex items-center justify-between bg-gray-100 rounded-lg p-0.5 mb-1 h-8">
+                                            <button onClick={(e) => { e.stopPropagation(); setQty(q => Math.max(1, q - 1)); }} className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-white rounded transition-colors"><Icons.Minus size={12}/></button>
+                                            <input type="number" min="1" value={qty} onClick={(e) => e.stopPropagation()} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-8 text-center bg-transparent text-sm font-bold focus:outline-none"/>
+                                            <button onClick={(e) => { e.stopPropagation(); setQty(q => q + 1); }} className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-white rounded transition-colors"><Icons.Plus size={12}/></button>
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        onClick={handleAddToCart}
+                                        disabled={isOutOfStock}
+                                        className={`w-full px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1 ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : (hasSizes || hasCustomFields ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : (isSale ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-[#0b5394] hover:bg-blue-700 text-white'))}`}
+                                    >
+                                            {isOutOfStock ? "Sold" : (
+                                                <React.Fragment>
+                                                    {!hasSizes && !hasCustomFields && <Icons.Cart size={14} className="mr-0.5"/>}
+                                                    {(!hasSizes && !hasCustomFields) && <Icons.Plus size={14} />} 
+                                                    {btnText} 
+                                                    {product.unlimitedStock && !hasSizes && !hasCustomFields && qty > 1 ? ` (${qty})` : ''}
+                                                </React.Fragment>
+                                            )}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+const App = () => {
+            const [products, setProducts] = useState([]);
+            const [reservations, setReservations] = useState([]);
+            const [selectedProduct, setSelectedProduct] = useState(null);
+            const [isCartOpen, setIsCartOpen] = useState(false);
+            const [activeCategory, setActiveCategory] = useState("All");
+            const [currentImageIndex, setCurrentImageIndex] = useState(0);
+            const [sortBy, setSortBy] = useState("default");
+            const [filterSource, setFilterSource] = useState("all"); 
+            const [now, setNow] = useState(Date.now()); 
+            const [shippingZip, setShippingZip] = useState("");
+            const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+            const [customFieldValues, setCustomFieldValues] = useState({});
+            
+            // Animation State
+            const [flyingImage, setFlyingImage] = useState(null);
+            const cartIconRef = useRef(null);
+            const initialUrlCheckDone = useRef(false);
+
+            const [searchQuery, setSearchQuery] = useState(() => {
+                let q = "";
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const val = params.get('q');
+                    if (val) q = decodeURIComponent(val.replace(/\+/g, ' '));
+                } catch(e) {}
+                if (!q) {
+                    try {
+                        const stored = localStorage.getItem('wcc_search_pending');
+                        const timestamp = localStorage.getItem('wcc_search_time');
+                        if (stored && timestamp && (Date.now() - parseInt(timestamp) < 60000)) {
+                            q = stored; localStorage.removeItem('wcc_search_pending'); 
+                        }
+                    } catch(e) {}
+                }
+                if (!q) {
+                    try {
+                        const match = document.referrer.match(/[?&]q=([^&]+)/);
+                        if (match && match[1]) q = decodeURIComponent(match[1].replace(/\+/g, ' '));
+                    } catch(e) {}
+                }
+                return q || "";
+            });
+
+            const [showFilters, setShowFilters] = useState(true);
+            const [deliveryMethod, setDeliveryMethod] = useState('shipping');
+            const [isConfigMissing, setIsConfigMissing] = useState(false);
+            const lastScrollY = useRef(0);
+            const [selectedSize, setSelectedSize] = useState("");
+            const [modalQty, setModalQty] = useState(1);
+            const [user, setUser] = useState(null);
+            
+            // 1. READ URL ON LOAD (Deep Linking)
+            useEffect(() => {
+                if (products.length > 0 && !initialUrlCheckDone.current) {
+                    const params = new URLSearchParams(window.location.search);
+                    const itemId = params.get('item');
+                    if (itemId) {
+                        const found = products.find(p => p.id === itemId);
+                        if (found) setSelectedProduct(found);
+                    }
+                    initialUrlCheckDone.current = true;
+                }
+            }, [products]);
+
+            // 2. WRITE TO URL (Deep Linking Sync)
+            useEffect(() => {
+                if (initialUrlCheckDone.current) {
+                    const newUrl = new URL(window.location);
+                    if (selectedProduct) {
+                        newUrl.searchParams.set('item', selectedProduct.id);
+                        // Add modal state for back button handling
+                        window.history.pushState({ modal: true }, "", newUrl); 
+                    } else {
+                        newUrl.searchParams.delete('item');
+                        // Use pushState to clear URL without back button weirdness
+                        window.history.pushState({}, "", newUrl);
+                    }
+                }
+                
+                // Reset modal states
+                setCurrentImageIndex(0);
+                setSelectedSize("");
+                setModalQty(1);
+                setCustomFieldValues({}); 
+            }, [selectedProduct]);
+
+            useEffect(() => {
+                const onPopState = (event) => {
+                    setSelectedProduct(null);
+                };
+                window.addEventListener('popstate', onPopState);
+                return () => window.removeEventListener('popstate', onPopState);
+            }, []);
+
+            const handleProductClick = (product) => {
+                if(product.stock > 0 || product.unlimitedStock || (product.sizes && product.sizes.some(s => s.stock > 0))) {
+                    // Logic is now handled by useEffect via selectedProduct
+                    setSelectedProduct(product);
+                }
+            };
+
+            const handleCloseModal = () => {
+                // If deep linked or history exists, back button works better
+                if (window.history.state && window.history.state.modal) {
+                    window.history.back();
+                } else {
+                    setSelectedProduct(null); 
+                }
+            };
+            useEffect(() => {
+                if (searchQuery) setShowFilters(true);
+                const handleScroll = () => {
+                    const currentScrollY = window.scrollY;
+                    if (currentScrollY < 100 || currentScrollY < lastScrollY.current) setShowFilters(true);
+                    else setShowFilters(false);
+                    lastScrollY.current = currentScrollY;
+                };
+                window.addEventListener('scroll', handleScroll, { passive: true });
+                if (!window.firebaseReady) { setIsConfigMissing(true); return; }
+                const initAuth = async () => {
+                    if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await window.signInWithCustomToken(window.auth, __initial_auth_token);
+                    } else {
+                        await window.signInAnonymously(window.auth);
+                    }
+                };
+                initAuth();
+                const unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
+                const prodCol = window.getCollectionRef('products');
+                const resCol = window.getCollectionRef('reservations');
+                const unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
+                    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                }, (error) => console.error(error));
+                const unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
+                    setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+                const timerInterval = setInterval(() => setNow(Date.now()), 1000);
+                const handleResize = () => setViewportHeight(window.innerHeight);
+                window.addEventListener('resize', handleResize);
+                window.addEventListener('orientationchange', handleResize);
+
+                return () => {
+                    window.removeEventListener('scroll', handleScroll);
+                    window.removeEventListener('resize', handleResize);
+                    window.removeEventListener('orientationchange', handleResize);
+                    unsubscribeAuth(); unsubscribeProd(); unsubscribeRes(); clearInterval(timerInterval);
+                };
+            }, []);
+
+            useEffect(() => {
+                if (isCartOpen || selectedProduct) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            }, [isCartOpen, selectedProduct]);
+            
+            const hasLocalPickupOnlyItem = useMemo(() => {
+                if (!user) return false;
+                const cartItems = reservations
+                    .filter(r => r.userId === user.uid && r.expiresAt > now)
+                    .map(r => products.find(p => p.id === r.productId) ? { ...products.find(p => p.id === r.productId), ...r } : null)
+                    .filter(Boolean);
+                return cartItems.some(p => p.localPickupOnly);
+            }, [reservations, products, user, now]);
+            
+            useEffect(() => {
+                if (hasLocalPickupOnlyItem) setDeliveryMethod('pickup');
+            }, [hasLocalPickupOnlyItem]);
+
+            const getSafeImages = (p) => {
+                if (!p || !p.images) return ["https://via.placeholder.com/400?text=No+Image"];
+                if (Array.isArray(p.images)) return p.images.length > 0 ? p.images : ["https://via.placeholder.com/400?text=No+Image"];
+                if (typeof p.images === 'string') return [p.images];
+                return ["https://via.placeholder.com/400?text=Error"];
+            };
+
+            const categories = ["All", ...new Set(products.map(p => p.category))];
+            
+            const getAvailability = (product, sizeName = null) => {
+                if (product.unlimitedStock) return 100;
+                if (product.sizes && product.sizes.length > 0) {
+                    if (sizeName) {
+                        const sizeData = product.sizes.find(s => s.name === sizeName);
+                        if (!sizeData) return 0;
+                        const totalStock = parseInt(sizeData.stock) || 0;
+                        const activeRes = reservations.filter(r => r.productId === product.id && r.size === sizeName && r.expiresAt > now);
+                        const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
+                        return Math.max(0, totalStock - reservedCount);
+                    } else {
+                        const totalStock = product.sizes.reduce((acc, s) => acc + (parseInt(s.stock)||0), 0);
+                         const activeRes = reservations.filter(r => r.productId === product.id && r.expiresAt > now);
+                         const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
+                         return Math.max(0, totalStock - reservedCount);
+                    }
+                } 
+                const totalStock = parseInt(product.stock) || 1;
+                const activeRes = reservations.filter(r => r.productId === product.id && !r.size && r.expiresAt > now);
+                const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
+                return Math.max(0, totalStock - reservedCount);
+            };
+
+            const myCart = useMemo(() => {
+                if (!user) return [];
+                return reservations
+                    .filter(r => r.userId === user.uid && r.expiresAt > now)
+                    .map(r => products.find(p => p.id === r.productId) ? { ...products.find(p => p.id === r.productId), ...r } : null)
+                    .filter(Boolean);
+            }, [reservations, user, now, products]);
+
+            const cartSubtotal = myCart.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+            
+            const shippingCost = useMemo(() => {
+                if (myCart.length === 0) return 0;
+                if (deliveryMethod === 'pickup') return 0;
+                if (!shippingZip || shippingZip.length < 5) return null;
+                if (CONFIG.shipping.freeShippingThreshold > 0 && cartSubtotal >= CONFIG.shipping.freeShippingThreshold) return 0;
+                
+                const flatRateItems = myCart.filter(i => i.flatRateShipping);
+                const standardItems = myCart.filter(i => !i.flatRateShipping);
+                let cost = 0;
+                flatRateItems.forEach(item => { cost += (parseFloat(item.flatRateAmount) || 0) * (item.quantity || 1); });
+                
+                if (standardItems.length > 0) {
+                    const hasBox = standardItems.some(i => i.packageType === 'box' || !i.packageType);
+                    const baseRate = hasBox ? CONFIG.shipping.boxBaseRate : CONFIG.shipping.envelopeBaseRate;
+                    const standardWeight = standardItems.reduce((s, i) => s + ((parseFloat(i.weight) || 0) * (i.quantity || 1)), 0);
+                    let standardCost = baseRate + (standardWeight * CONFIG.shipping.ratePerLb);
+                    if (standardItems.length > 1) standardCost += (standardItems.length - 1) * CONFIG.shipping.additionalItemFee;
+                    if (shippingZip && shippingZip.length === 5) {
+                        const originZone = parseInt(CONFIG.shipping.originZip.charAt(0));
+                        const destZone = parseInt(shippingZip.charAt(0));
+                        if (!isNaN(originZone) && !isNaN(destZone)) {
+                            standardCost += (Math.abs(destZone - originZone) * CONFIG.shipping.zoneSurchargeMultiplier);
+                        }
+                    }
+                    cost += standardCost;
+                }
+                return cost;
+            }, [myCart, cartSubtotal, shippingZip, deliveryMethod]);
+
+            const processedProducts = useMemo(() => {
+                let items = [...products];
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    items = items.filter(p => p.title.toLowerCase().includes(query) || (p.description && p.description.toLowerCase().includes(query)));
+                }
+                if (activeCategory !== "All") items = items.filter(p => p.category === activeCategory);
+                if (filterSource === "shop") items = items.filter(p => !p.ebayLink);
+                else if (filterSource === "ebay") items = items.filter(p => p.ebayLink);
+                else if (filterSource === "pickup") items = items.filter(p => p.localPickupOnly);
+                else if (filterSource === "sale") items = items.filter(p => p.sale);
+                else if (filterSource === "local_pickup_available") items = items.filter(p => p.localPickupAvailable || p.localPickupOnly);
+
+                switch (sortBy) {
+                    case "default": items.sort((a, b) => { const aIsShop = !a.ebayLink; const bIsShop = !b.ebayLink; if (aIsShop !== bIsShop) return aIsShop ? -1 : 1; if (a.order !== undefined && b.order !== undefined && a.order !== b.order) return a.order - b.order; return (b.createdAt || "") - (a.createdAt || ""); }); break;
+                    case "price-asc": items.sort((a, b) => a.price - b.price); break;
+                    case "price-desc": items.sort((a, b) => b.price - a.price); break;
+                    case "name-asc": items.sort((a, b) => a.title.localeCompare(b.title)); break;
+                    case "newest": items.sort((a, b) => (b.createdAt || "") - (a.createdAt || "")); break;
+                }
+                return items;
+            }, [products, activeCategory, sortBy, filterSource, searchQuery, reservations, now]);
+
+            const selectedPriceInfo = useMemo(() => {
+                if (!selectedProduct) return { price: null, isDefault: true, sizeName: null };
+                let price = selectedProduct.price; let isDefault = true;
+                if (selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedSize) {
+                    const sizeObj = selectedProduct.sizes.find(s => s.name === selectedSize);
+                    price = parseFloat(sizeObj?.price) || selectedProduct.price; isDefault = false;
+                }
+                return { price: price, isDefault: isDefault, sizeName: selectedSize, priceText: price !== null ? `${CONFIG.currencySymbol}${price.toFixed(2)}` : 'Select Size' };
+            }, [selectedProduct, selectedSize]);
+
+            const addToCart = async (product, quantity = 1, customInputs = {}, openCart = false, event = null) => {
+                if (!user) return console.error("Connecting... please wait.");
+                
+                // Animation Logic
+                if (event && !openCart && cartIconRef.current) {
+                    const imgEl = event.target.closest('.group')?.querySelector('img');
+                    if (imgEl) {
+                        const startRect = imgEl.getBoundingClientRect();
+                        const endRect = cartIconRef.current.getBoundingClientRect();
+                        
+                        setFlyingImage({
+                            src: imgEl.src,
+                            top: startRect.top,
+                            left: startRect.left,
+                            width: startRect.width,
+                            height: startRect.height,
+                            opacity: 1
+                        });
+
+                        setTimeout(() => {
+                            setFlyingImage({
+                                src: imgEl.src,
+                                top: endRect.top + (endRect.height / 2) - 15,
+                                left: endRect.left + (endRect.width / 2) - 15,
+                                width: 30,
+                                height: 30,
+                                opacity: 0.5
+                            });
+                        }, 20);
+
+                        setTimeout(() => setFlyingImage(null), 700);
+                    }
+                }
+
+                let finalPrice = product.price;
+                if (product.sizes && product.sizes.length > 0) {
+                    if (!selectedSize) return console.error("Please select a size.");
+                    const available = getAvailability(product, selectedSize);
+                    if (available < 1) return console.error("Sorry! That size is out of stock.");
+                    const sizeObj = product.sizes.find(s => s.name === selectedSize);
+                    if (sizeObj && sizeObj.price) finalPrice = parseFloat(sizeObj.price);
+                } else {
+                    const available = getAvailability(product);
+                    if (available < 1) return console.error("Sorry! This item just went out of stock.");
+                }
+
+                const expirationDuration = product.unlimitedStock ? (365 * 24 * 60 * 60 * 1000) : CONFIG.reservationTime;
+
+                try {
+                    const resCol = window.getCollectionRef('reservations');
+                    const reservationData = {
+                        productId: product.id,
+                        userId: user.uid,
+                        quantity: quantity,
+                        price: finalPrice,
+                        expiresAt: Date.now() + expirationDuration,
+                        createdAt: Date.now(),
+                        flatRateShipping: product.flatRateShipping || false,
+                        flatRateAmount: product.flatRateAmount || 0,
+                        unlimitedStock: product.unlimitedStock || false,
+                        customInputs: customInputs
+                    };
+                    if (selectedSize) reservationData.size = selectedSize;
+                    await window.addDoc(resCol, reservationData);
+                    
+                    handleCloseModal(); // Always close the preview
+
+                    if (openCart) {
+                        setIsCartOpen(true); // Only open cart if requested (Buy Now)
+                    } else {
+                        setIsCartOpen(false); // Ensure cart stays closed (Add to Cart)
+                    }
+                    
+                } catch (err) { console.error("Could not add to cart.", err); }
+            };
+
+            const removeFromCart = async (reservationId) => {
+                try {
+                    const docRef = window.getDocRef('reservations', reservationId);
+                    await window.deleteDoc(docRef);
+                } catch (err) { console.error(err); }
+            };
+            
+            const updateCartQty = async (item, delta) => {
+                try {
+                    const newQty = (item.quantity || 1) + delta;
+                    if (newQty < 1) return removeFromCart(item.id);
+                    const docRef = window.getDocRef('reservations', item.id);
+                    await window.updateDoc(docRef, { quantity: newQty });
+                } catch (err) { console.error("Update qty failed", err); }
+            };
+            
+            const zipStateInfo = useMemo(() => {
+                if (shippingZip.length < 3) return null;
+                return getZipState(shippingZip);
+            }, [shippingZip]);
+
+            const isRestrictedZip = deliveryMethod === 'shipping' && zipStateInfo && zipStateInfo.restricted;
+            const handleCheckout = async (e) => {
+                if(e) e.preventDefault();
+                if (CONFIG.paypalEmail === "your-email@example.com") return console.error("Error: Configure PayPal email.");
+                if (deliveryMethod === 'shipping') {
+                    if (shippingZip.length < 5) return console.error("Enter valid Zip.");
+                    const stateInfo = getZipState(shippingZip);
+                    if (stateInfo && stateInfo.restricted) {
+                        console.error(`Shipping restricted for ${stateInfo.name}.`);
+                        return;
+                    }
+                }
+
+                const params = new URLSearchParams({
+                    cmd: "_cart", upload: "1", business: CONFIG.paypalEmail, currency_code: CONFIG.paypalCurrency
+                });
+                myCart.forEach((item, idx) => {
+                    const i = idx + 1;
+                    let name = item.title;
+                    if(item.size) name += ` (Size: ${item.size})`;
+                    
+                    if(item.customInputs) {
+                        const inputs = Object.entries(item.customInputs).map(([k, v]) => `${k}: ${v}`).join(', ');
+                        if(inputs) name += ` [${inputs}]`;
+                    }
+
+                    const qty = item.quantity || 1;
+                    params.append(`item_name_${i}`, name);
+                    params.append(`amount_${i}`, item.price.toFixed(2));
+                    params.append(`quantity_${i}`, qty);
+                });
+                if (shippingCost !== null && shippingCost > 0) params.append("handling_cart", shippingCost.toFixed(2));
+                
+                window.open(`https://www.paypal.com/cgi-bin/webscr?${params.toString()}`, '_blank');
+                setIsCartOpen(false);
+
+                const batch = window.writeBatch(window.db);
+                for (const item of myCart) {
+                    const resRef = window.getDocRef('reservations', item.id);
+                    const prodRef = window.getDocRef('products', item.productId);
+                    batch.delete(resRef);
+                    if (!item.unlimitedStock) {
+                        const qty = item.quantity || 1;
+                        if (!item.size) batch.update(prodRef, { stock: window.increment(-qty) });
+                    }
+                }
+                await batch.commit();
+            };
+            
+            // NEW GOOGLE FORM HANDLER
+            const handleSendInquiry = () => {
+                if (!CONFIG.googleFormUrl) return alert("Please set the Google Form URL in the Config.");
+                
+                let finalUrl = CONFIG.googleFormUrl;
+                
+                // If the user provided an Entry ID, append the pre-filled data
+                if (CONFIG.googleFormEntryId && selectedProduct) {
+                    const itemInfo = `Item: ${selectedProduct.title} \nLink: ${window.location.href}`;
+                    const separator = finalUrl.includes('?') ? '&' : '?';
+                    finalUrl = `${finalUrl}${separator}entry.${CONFIG.googleFormEntryId}=${encodeURIComponent(itemInfo)}`;
+                }
+                
+                // Open in new tab
+                window.open(finalUrl, '_blank');
+            };
+
+            if (isConfigMissing) return <div className="p-10 text-center font-bold text-red-600">Configuration Missing</div>;
+return (
+                <div className="min-h-screen pb-20">
+                    <header className="bg-white shadow-sm sticky top-0 z-40">
+                        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <img src="https://drive.google.com/thumbnail?id=112kyAh1uT2i9JO4KiKHGHjv62ATjKhWi&sz=w200" alt="Logo" className="h-10 w-10 rounded-full object-cover shadow-sm border border-gray-100" onError={(e) => {e.target.style.display = 'none'}} />
+                                <h1 className="text-2xl font-bold text-[#0b5394]">{CONFIG.storeName}</h1>
+                            </div>
+                            <div className="flex gap-4 items-center">
+                                <a href="https://www.weekendcustomcreations.com" target="_top" className="p-2 hover:bg-gray-100 rounded-full text-gray-600" title="Go Home"><Icons.Home size={24} /></a>
+                                <button ref={cartIconRef} onClick={() => setIsCartOpen(true)} className="relative p-2 hover:bg-gray-100 rounded-full"><Icons.Cart size={24} />{myCart.length > 0 && <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{myCart.length}</span>}</button>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto px-4 py-8">
+                        <div className={`z-30 bg-gray-200/95 backdrop-blur-sm transition-all duration-300 border-b border-gray-300/50 pb-4 mb-6 -mx-4 px-4 relative md:sticky ${showFilters ? "md:top-[73px] md:opacity-100 md:translate-y-0" : "md:top-[-200px] md:opacity-0 md:-translate-y-full"}`}>
+                            <div className="flex flex-col gap-4">
+                                <div className="relative w-full"><input type="text" placeholder="Search items..." className="w-full border border-[#0b5394] rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#0b5394] text-base shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/><div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Icons.Search size={20} /></div></div>
+                                <div className="flex overflow-x-auto md:flex-wrap pb-2 gap-2 no-scrollbar w-full">{categories.map(cat => (<button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-all ${activeCategory === cat ? 'bg-[#0b5394] text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}>{cat}</button>))}</div>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex bg-[#0b5394] p-1 rounded-lg overflow-x-auto no-scrollbar max-w-full">
+                                        <button onClick={() => setFilterSource("shop")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "shop" ? "bg-white text-gray-900 shadow-sm" : "text-white hover:text-gray-200"}`}>In-Store</button>
+                                        <button onClick={() => setFilterSource("ebay")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "ebay" ? "bg-white text-blue-600 shadow-sm" : "text-white hover:text-gray-200"}`}>eBay Only</button>
+                                        <button onClick={() => setFilterSource("pickup")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "pickup" ? "bg-white text-amber-600 shadow-sm" : "text-white hover:text-gray-200"}`}>Pickup Only</button>
+                                        <button onClick={() => setFilterSource("sale")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "sale" ? "bg-white text-red-600 shadow-sm" : "text-white hover:text-gray-200"}`}>Sale</button>
+                                        <button onClick={() => setFilterSource("all")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "all" ? "bg-white text-gray-900 shadow-sm" : "text-white hover:text-gray-200"}`}>All Items</button>
+                                        <button onClick={() => setFilterSource("local_pickup_available")} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap ${filterSource === "local_pickup_available" ? "bg-white text-green-700 shadow-sm" : "text-white hover:text-gray-200"}`}>Local Pickup</button>
+                                    </div>
+                                    <div className="relative ml-auto md:ml-0">
+                                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none bg-white border border-gray-200 text-gray-700 text-sm rounded-lg hover:border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none block pl-3 pr-8 py-2 cursor-pointer shadow-sm">
+                                            <option value="default">Default</option><option value="newest">Newest</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option><option value="name-asc">Name: A-Z</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"><Icons.Sort size={14} /></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {processedProducts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-md w-full">
+                                    <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Icons.Search size={32} />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No items found</h3>
+                                    {(activeCategory !== "All" || filterSource !== "all") ? (
+                                        <div className="mt-4 animate-fade-in">
+                                            <p className="text-gray-500 text-sm mb-4">We couldn't find matches in the current filters.</p>
+                                            <button 
+                                                onClick={() => { setActiveCategory("All"); setFilterSource("all"); }}
+                                                className="w-full px-4 py-2.5 bg-[#0b5394] text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                            >
+                                                <Icons.Search size={16} /> Search in All Categories
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-gray-500 text-sm">Try checking your spelling or using different keywords.</p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+                                {processedProducts.map(product => <ProductCard key={product.id} product={product} isSale={product.sale === true} isOutOfStock={getAvailability(product) < 1} available={getAvailability(product)} safeImages={getSafeImages(product)} handleProductClick={handleProductClick} addToCart={addToCart} CONFIG={CONFIG} Icons={Icons} />)}
+                            </div>
+                        )}
+                    </main>
+
+                    {isCartOpen && (
+                        <div className="fixed inset-0 z-[60] flex justify-end">
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsCartOpen(false)}></div>
+                            <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slide-in">
+                                <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                                    <div className="flex flex-col"><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Icons.Cart /> Your Cart ({myCart.length})</h2>
+                                        {myCart.some(i => !i.unlimitedStock) && (
+                                            <span className="text-xs text-orange-600 font-bold mt-1">Reserving limited items for: {formatTime(Math.min(...myCart.filter(i => !i.unlimitedStock).map(i => i.expiresAt)))}</span>
+                                        )}
+                                    </div>
+                                    <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><Icons.X size={24} /></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                                    {myCart.length === 0 ? <div className="flex flex-col items-center justify-center h-64 text-gray-400"><Icons.Cart size={48} className="mb-2 opacity-50"/><p>Your cart is empty</p><button onClick={() => setIsCartOpen(false)} className="mt-4 text-blue-600 font-bold hover:underline">Start Shopping</button></div> : (
+                                        myCart.map((item, idx) => (
+                                            <div key={`${item.id}-${idx}`} className="flex gap-3 bg-white border border-gray-100 p-2 rounded-xl shadow-sm relative overflow-hidden">
+                                                {!item.unlimitedStock && (
+                                                    <div className="absolute bottom-0 left-0 h-1 bg-orange-100 w-full"><div className="h-full bg-orange-400 transition-all duration-1000" style={{ width: `${Math.max(0, ((item.expiresAt - Date.now()) / CONFIG.reservationTime) * 100)}%` }}></div></div>
+                                                )}
+                                                <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"><img src={getSafeImages(item)[0]} alt={item.title} className="w-full h-full object-contain" /></div>
+                                                <div className="flex-1 flex flex-col justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-sm line-clamp-2 leading-tight">{item.title}</h4>
+                                                        {item.customInputs && (
+                                                            <div className="mt-1 flex flex-col gap-0.5">
+                                                                {Object.entries(item.customInputs).map(([label, val], k) => (
+                                                                    <span key={k} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded w-fit">
+                                                                        <b>{label}:</b> {val}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {item.size && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded inline-block">Size: {item.size}</span>}
+                                                            {item.localPickupOnly && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded inline-block">Pickup Only</span>}
+                                                            {!item.unlimitedStock && <span className="text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-mono flex items-center gap-1"><Icons.Clock size={8} /> {formatTime(item.expiresAt)}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-end mt-2 mb-1">
+                                                        <div className="font-bold text-[#0b5394]">{CONFIG.currencySymbol}{item.price.toFixed(2)}</div>
+                                                        <div className="flex items-center gap-3">
+                                                            {item.unlimitedStock ? (
+                                                                <div className="flex items-center border rounded-lg h-7"><button onClick={() => updateCartQty(item, -1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Minus size={12}/></button><span className="px-2 text-xs font-bold">{item.quantity || 1}</span><button onClick={() => updateCartQty(item, 1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Plus size={12}/></button></div>
+                                                            ) : (<span className="text-xs text-gray-400">Qty: 1</span>)}
+                                                            <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600 p-1"><Icons.Trash size={16}/></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+
+                                    {myCart.length > 0 && (
+                                        <div className="space-y-4 pt-4 border-t border-gray-100">
+                                            {myCart.some(i => !i.unlimitedStock) && (
+                                                <div className="text-[10px] text-center text-orange-600 bg-orange-50 border border-orange-100 p-2 rounded">
+                                                    Items are reserved for 30 minutes. If you do not checkout, they will be removed.
+                                                </div>
+                                            )}
+
+                                            <div className="flex bg-gray-200 p-1 rounded-lg">
+                                                <button onClick={() => setDeliveryMethod('shipping')} disabled={hasLocalPickupOnlyItem} className={`flex-1 py-1.5 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${deliveryMethod === 'shipping' ? 'bg-white shadow text-blue-900' : hasLocalPickupOnlyItem ? 'text-gray-400 cursor-not-allowed' : 'text-gray-500 hover:text-gray-700'}`}><Icons.Truck size={14} /> Ship</button>
+                                                <button onClick={() => setDeliveryMethod('pickup')} className={`flex-1 py-1.5 text-sm font-bold rounded-md flex items-center justify-center gap-2 transition-all ${deliveryMethod === 'pickup' ? 'bg-white shadow text-blue-900' : 'text-gray-500 hover:text-gray-700'}`}><Icons.MapPin size={14} /> Pickup</button>
+                                            </div>
+
+                                            {hasLocalPickupOnlyItem && deliveryMethod === 'pickup' && <div className="text-xs bg-amber-50 text-amber-700 p-2 rounded border border-amber-200 text-center">Cart contains "Pickup Only" items. Shipping is disabled.</div>}
+
+                                            {deliveryMethod === 'pickup' && (
+                                                <div className="mt-3 space-y-3">
+                                                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm text-blue-800">
+                                                        <p className="font-bold mb-1 flex items-center gap-2"><Icons.Alert size={14} className="inline"/> Pickup Responsibility</p>
+                                                        <p className="text-xs mb-2">By proceeding you understand the following: You are responsible for picking up your order. You are responsible to contact us to arrange a specific time for pickup.</p>
+                                                        <div className="rounded-lg overflow-hidden border border-blue-200 mb-2 relative group cursor-pointer h-40"><iframe width="100%" height="100%" frameBorder="0" style={{border:0}} src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3032.417247336829!2d-76.4633!3d40.9525!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c585c5c5c5c5c5%3A0x0!2sCatawissa%2C%20PA%2017820!5e0!3m2!1sen!2sus!4v1600000000000!5m2!1sen!2sus" allowFullScreen></iframe><div className="absolute bottom-0 w-full bg-white/90 p-1 text-center text-[10px] text-gray-500 border-t backdrop-blur-sm">General View: Catawissa, PA 17820</div></div>
+                                                        <a href="https://www.google.com/maps/dir//Catawissa,+PA+17820" target="_blank" rel="noopener noreferrer" className="block w-full py-2 bg-white border border-blue-300 text-blue-700 font-bold text-center rounded-lg hover:bg-blue-50 transition-colors text-xs flex items-center justify-center gap-2"><Icons.MapPin size={14}/> Get Directions</a>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {deliveryMethod === 'shipping' && (
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase">Shipping Address</label>
+                                                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength="5" placeholder="Enter Zip Code" value={shippingZip} onChange={(e) => setShippingZip(e.target.value.replace(/\D/g,''))} className={`w-full p-2 border rounded-lg text-sm ${isRestrictedZip ? 'border-red-300 bg-red-50 text-red-900' : 'border-gray-300'}`}/>
+                                                    {isRestrictedZip && <p className="text-xs text-red-600 font-bold">Sorry, we do not ship to {zipStateInfo?.name}. Lower 48 Only.</p>}
+                                                    {shippingZip.length === 5 && !isRestrictedZip && <p className="text-xs text-green-700 font-bold flex items-center gap-1"><Icons.Truck size={12}/> Shipping to {zipStateInfo?.name}</p>}
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{CONFIG.currencySymbol}{cartSubtotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span>{deliveryMethod === 'pickup' ? 'Free (Pickup)' : (shippingCost === null ? '--' : (shippingCost === 0 ? 'FREE' : `${CONFIG.currencySymbol}${shippingCost.toFixed(2)}`))}</span></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {myCart.length > 0 && (
+                                    <div className="bg-gray-50 p-4 border-t border-gray-200 flex-none z-10 shadow-top safe-area-bottom">
+                                        <div className="flex justify-between text-lg font-bold text-gray-900 mb-3"><span>Total</span><span>{CONFIG.currencySymbol}{((cartSubtotal + (deliveryMethod === 'shipping' ? (shippingCost || 0) : 0))).toFixed(2)}</span></div>
+                                        
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setIsCartOpen(false)} className="flex-1 py-4 rounded-xl font-bold text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors active:scale-95">Continue Shopping</button>
+                                            <button onClick={handleCheckout} disabled={deliveryMethod === 'shipping' && (shippingCost === null || isRestrictedZip)} className={`flex-[1.5] py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 ${deliveryMethod === 'shipping' && (shippingCost === null || isRestrictedZip) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#003087] text-white hover:bg-[#001c64]'}`}>{deliveryMethod === 'shipping' && shippingCost === null ? 'Enter Zip' : <span>Checkout with <span className="italic font-extrabold">PayPal</span></span>}</button>
+                                        </div>
+
+                                        <div className="text-center mt-2"><p className="text-[10px] text-gray-400">Secure checkout via PayPal. Credit/Debit Cards accepted.</p></div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {flyingImage && (
+                        <img 
+                            src={flyingImage.src} 
+                            style={{
+                                position: 'fixed',
+                                zIndex: 9999,
+                                top: flyingImage.top,
+                                left: flyingImage.left,
+                                width: flyingImage.width,
+                                height: flyingImage.height,
+                                objectFit: 'contain',
+                                transition: 'all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                opacity: flyingImage.opacity,
+                                pointerEvents: 'none',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                            }}
+                        />
+                    )}
+
+                    {selectedProduct && (
+                        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && setSelectedProduct(null)}>
+                            <div className={`bg-white w-full md:w-full md:max-w-4xl flex flex-col md:flex-row relative shadow-2xl transition-all ${selectedProduct.sale ? 'ring-0 md:ring-4 ring-red-500 sale-glow' : ''} ${selectedProduct.ebayLink ? 'ring-0 md:ring-4 ring-blue-500 ebay-glow' : ''} md:rounded-2xl`} style={{ height: window.innerWidth < 768 ? `${viewportHeight}px` : 'auto', maxHeight: window.innerWidth < 768 ? 'none' : '85vh' }}>
+                                <div className="md:hidden flex-none flex justify-between items-center p-4 border-b bg-white z-20">
+                                    <h2 className="text-lg font-bold truncate pr-4">{selectedProduct.title}</h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleSendInquiry} className="p-2 hover:bg-blue-50 text-blue-600 rounded-full bg-gray-50"><Icons.Envelope size={20}/></button>
+                                        <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("Link copied!"); }} className="p-2 hover:bg-blue-50 text-blue-600 rounded-full bg-gray-50"><Icons.Share size={20}/></button>
+                                        <button onClick={() => setSelectedProduct(null)} className="p-2 hover:bg-gray-100 rounded-full bg-gray-50"><Icons.X size={20}/></button>
+                                    </div>
+                                </div>
+                                <div className="hidden md:flex absolute top-4 right-4 gap-2 z-50">
+                                    <button onClick={handleSendInquiry} className="p-2 bg-white/80 rounded-full hover:bg-white transition-colors shadow-sm text-blue-600" title="Ask a Question"><Icons.Envelope size={24} /></button>
+                                    <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert("Link copied to clipboard!"); }} className="p-2 bg-white/80 rounded-full hover:bg-white transition-colors shadow-sm text-blue-600" title="Share Link"><Icons.Share size={24} /></button>
+                                    <button onClick={() => setSelectedProduct(null)} className="p-2 bg-white/80 rounded-full hover:bg-white transition-colors shadow-sm"><Icons.X size={24} /></button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto overscroll-y-contain flex flex-col md:flex-row min-h-0">
+                                    <div className="w-full md:w-1/2 h-80 md:h-auto bg-gray-100 relative group min-h-[300px] flex-shrink-0">
+                                        <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 items-start">
+                                            {selectedProduct.sale && !selectedProduct.ebayLink && <div className="bg-red-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse"><Icons.Tag size={16} /> ON SALE</div>}
+                                            {selectedProduct.flatRateShipping && parseFloat(selectedProduct.flatRateAmount) === 0 && <div className="bg-green-700 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.Truck size={16} /> FREE SHIPPING</div>}
+                                            {selectedProduct.localPickupOnly && <div className="bg-orange-500 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP ONLY</div>}
+                                            {!selectedProduct.localPickupOnly && selectedProduct.localPickupAvailable && <div className="bg-green-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP AVAILABLE</div>}
+                                            {selectedProduct.ebayLink && <div className="bg-blue-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.External size={16} /> eBay Listing</div>}
+                                        </div>
+                                        <img src={getSafeImages(selectedProduct)[currentImageIndex] || "https://via.placeholder.com/400?text=No+Image"} className="w-full h-full object-contain" />
+                                        {getSafeImages(selectedProduct).length > 1 && (<React.Fragment><button onClick={() => setCurrentImageIndex(i => i===0 ? getSafeImages(selectedProduct).length-1 : i-1)} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full hover:bg-white z-10 shadow-sm"><Icons.Left size={24}/></button><button onClick={() => setCurrentImageIndex(i => i===getSafeImages(selectedProduct).length-1 ? 0 : i+1)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full hover:bg-white z-10 shadow-sm"><Icons.Right size={24}/></button><div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">{getSafeImages(selectedProduct).map((_, idx) => (<div key={idx} onClick={() => setCurrentImageIndex(idx)} className={`w-2 h-2 rounded-full cursor-pointer shadow-sm transition-all ${currentImageIndex === idx ? "bg-white w-4" : "bg-white/50"}`} />))}</div></React.Fragment>)}
+                                    </div>
+
+                                    <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col">
+                                        <h2 className="hidden md:block text-3xl font-bold mb-4 text-gray-900">{selectedProduct.title}</h2>
+                                        <p className="text-gray-600 mb-6 text-lg leading-relaxed">{selectedProduct.description}</p>
+                                        
+                                        {/* PRICE DISPLAY ADDED HERE */}
+                                        <div className="text-3xl font-bold text-[#0b5394] mb-6">
+                                            {selectedPriceInfo.priceText}
+                                        </div>
+                                        
+                                        {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
+                                            <div className="mb-6">
+                                                <label className="block font-bold text-sm mb-2 text-gray-700">Select Size:</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedProduct.sizes.map((s, i) => {
+                                                        const available = getAvailability(selectedProduct, s.name);
+                                                        const isOutOfStock = available < 1;
+                                                        return <button key={i} onClick={() => !isOutOfStock && setSelectedSize(s.name)} className={`px-4 py-2 border rounded-lg transition-all flex flex-col items-center ${selectedSize === s.name ? 'bg-[#0b5394] text-white border-[#0b5394] shadow-md' : isOutOfStock ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed decoration-slice' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'}`}><span className="font-bold">{s.name}</span>{isOutOfStock && <span className="text-[10px] font-normal">Sold Out</span>}</button>;
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedProduct.customFields && selectedProduct.customFields.length > 0 && (
+                                            <div className="mb-6 space-y-4 bg-gray-200 p-4 rounded-xl border border-gray-300">
+                                                {selectedProduct.customFields.map((field, idx) => (
+                                                    <div key={idx}>
+                                                        <label className="block font-bold text-sm mb-1 text-gray-700">{field.label}</label>
+                                                        {field.type === 'select' ? (
+                                                            <select 
+                                                                className="w-full p-2 border rounded-lg bg-white"
+                                                                value={customFieldValues[field.label] || ''}
+                                                                onChange={(e) => setCustomFieldValues({...customFieldValues, [field.label]: e.target.value})}
+                                                            >
+                                                                <option value="">Select {field.label}...</option>
+                                                                {field.options.map((opt, oIdx) => <option key={oIdx} value={opt}>{opt}</option>)}
+                                                            </select>
+                                                        ) : (
+                                                            <input 
+                                                                type="text" 
+                                                                className="w-full p-2 border rounded-lg bg-white"
+                                                                placeholder={`Enter ${field.label}...`}
+                                                                value={customFieldValues[field.label] || ''}
+                                                                onChange={(e) => setCustomFieldValues({...customFieldValues, [field.label]: e.target.value})}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {selectedProduct.unlimitedStock && !selectedProduct.hasSizes && (
+                                            <div className="flex items-center gap-3 mb-6 p-3 bg-gray-200 rounded-xl border border-gray-300 w-fit">
+                                                <span className="text-sm font-bold text-gray-700">Quantity:</span>
+                                                <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                                                    <button onClick={() => setModalQty(q => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded-l-lg transition-colors border-r border-gray-100"><Icons.Minus size={16}/></button>
+                                                    <input type="number" min="1" value={modalQty} onChange={(e) => setModalQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-12 text-center bg-transparent font-bold focus:outline-none text-gray-900"/>
+                                                    <button onClick={() => setModalQty(q => q + 1)} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded-r-lg transition-colors border-l border-gray-100"><Icons.Plus size={16}/></button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="hidden md:flex mt-auto gap-4 pt-4 border-t border-gray-100">
+                                            {selectedProduct.ebayLink ? (
+                                                <a href={selectedProduct.ebayLink} target="_blank" rel="noopener noreferrer" className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-95">View on eBay <Icons.External size={18}/></a>
+                                            ) : (
+                                                <React.Fragment>
+                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300'}`}>
+                                                        Add to Cart 
+                                                        {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className={`text-sm font-bold ${selectedSize ? 'text-gray-500' : 'text-red-500'} mt-1`}>{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
+                                                        {(selectedProduct.customFields && selectedProduct.customFields.length > 0 && selectedProduct.customFields.some(f => !customFieldValues[f.label])) && <span className="text-[10px] text-red-500 font-normal">Fill options</span>}
+                                                    </button>
+                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 hover:bg-red-700' : 'bg-[#0b5394] hover:bg-blue-700'}`}>
+                                                        Buy Now 
+                                                        {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className="text-sm font-bold text-white/90 mt-1">{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
+                                                    </button>
+                                                </React.Fragment>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="md:hidden flex-none p-4 pb-8 border-t bg-gray-50 safe-area-bottom z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                                    <div className="flex gap-2">
+                                            {selectedProduct.ebayLink ? (
+                                                <a href={selectedProduct.ebayLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">View on eBay <Icons.External size={18}/></a>
+                                            ) : (
+                                                <React.Fragment>
+                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border border-gray-300 bg-white text-gray-700 rounded-xl font-bold transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'active:bg-gray-50'}`}>
+                                                        <span className="text-sm">Add to Cart</span>
+                                                        {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className={`text-xs font-bold ${selectedSize ? 'text-gray-500' : 'text-red-500'}`}>{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
+                                                    </button>
+                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 active:bg-red-700' : 'bg-[#0b5394] active:bg-blue-700'}`}>
+                                                        <span className="text-sm">Buy Now</span>
+                                                        {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className="text-xs font-bold text-white/90">{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
+                                                    </button>
+                                                </React.Fragment>
+                                            )}
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
