@@ -14,6 +14,30 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; 
         }
 
+        /* LOGIN OVERLAY */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2c3e50; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+        }
+        .login-card {
+            background: white; width: 90%; max-width: 350px; padding: 30px;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .login-input {
+            width: 100%; padding: 15px; border: 2px solid #ddd;
+            border-radius: 8px; font-size: 16px; margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .btn-login {
+            width: 100%; padding: 15px; background: #3498db; color: white;
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 0 #2980b9; transition: 0.1s;
+        }
+        .btn-login:active { transform: translateY(4px); box-shadow: none; }
+
         /* FIXED HEADER */
         .app-header {
             position: fixed; top: 0; left: 0; width: 100%; height: 70px;
@@ -41,7 +65,7 @@
         .active-mode { background: #2c3e50; color: white; }
 
         /* INPUTS */
-        input, select, textarea { width: 100%; padding: 16px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; -webkit-appearance: none; }
+        input:not(.login-input), select, textarea { width: 100%; padding: 16px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; -webkit-appearance: none; }
         input[type="text"], textarea { text-transform: uppercase; } 
         input:focus, select:focus, textarea:focus { border-color: #3498db; outline: none; }
         textarea { resize: vertical; min-height: 100px; font-family: inherit; }
@@ -92,7 +116,7 @@
             height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; 
             font-size: 20px; display: flex; align-items: center; justify-content: center; 
             box-shadow: 0 4px 0 #c0392b;
-            transition: all 0.1s;
+            transition: all 0.1s; 
             margin-bottom: 4px;
         }
         .btn-remove-stop:active { transform: translateY(4px); box-shadow: none; margin-top: 4px; margin-bottom: 0; }
@@ -168,19 +192,35 @@
         .sum-item div:first-child { font-size: 12px; opacity: 0.8; }
         .sum-item div:last-child { font-size: 20px; font-weight: bold; }
         
-        .report-card { background: #f9f9f9; border: 1px solid #eee; padding: 15px; margin-bottom: 15px; border-radius: 8px; text-align: left; }
+        .report-card { 
+            background: #f9f9f9; border: 1px solid #eee; 
+            padding: 15px; padding-right: 50px; 
+            margin-bottom: 15px; border-radius: 8px; text-align: left; position: relative; 
+        }
+
         .rep-header-row { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-bottom: 5px; }
         .rep-date { font-weight: bold; color: #2c3e50; }
         .rep-miles-val { font-weight: bold; color: #27ae60; white-space: nowrap; margin-left: 10px; font-size: 18px; }
         .rep-reason { font-size: 15px; color: #2980b9; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         .rep-route { font-size: 12px; color: #555; line-height: 1.4; border-top: 1px solid #ececec; padding-top: 5px; }
 
+        /* EDIT BUTTON */
+        .btn-edit {
+            position: absolute; top: 15px; right: 15px;
+            background: white; border: 1px solid #ddd;
+            border-radius: 50%; width: 35px; height: 35px;
+            font-size: 16px; cursor: pointer; color: #3498db;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10;
+        }
+        .btn-edit:hover { background: #3498db; color: white; }
+
         /* PRINT HEADER */
         .report-header-print { display: none; }
 
         @media print {
             body { background: white; padding: 0; margin: 0; }
-            .app-header, .toggle-box, #report-controls, .btn-refresh, .action-group, .filter-bar { display: none !important; }
+            .app-header, .toggle-box, #report-controls, .btn-refresh, .action-group, .filter-bar, .btn-edit, #edit-indicator, #login-overlay, #logout-modal, #delete-modal { display: none !important; }
             .container { box-shadow: none; max-width: 100%; width: 100%; padding: 0; margin: 0; }
             .report-header-print { display: flex !important; align-items: center; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; justify-content: space-between; text-align: left; }
             .ph-logo { height: 60px; width: 60px; object-fit: contain; }
@@ -188,18 +228,32 @@
             .ph-title { font-size: 20px; font-weight: bold; color: #2c3e50; }
             .ph-meta { font-size: 11px; color: #555; font-family: monospace; }
             .summary-box { background: #eee; color: black; border: 1px solid #ccc; }
-            .report-card { border: 1px solid #ccc; page-break-inside: avoid; }
+            .report-card { border: 1px solid #ccc; page-break-inside: avoid; padding-right: 15px; /* Reset padding for print */ }
         }
     </style>
 </head>
 <body>
+
+<div id="login-overlay">
+    <div class="login-card">
+        <img src="https://wccpa.github.io/shop/WCC1.jpg" style="height: 80px; width: 80px; border-radius: 50%; margin-bottom: 20px;">
+        <h2 style="margin: 0 0 20px 0; color: #2c3e50;">WCC App Login</h2>
+        <input type="text" id="login-user" class="login-input" placeholder="Username">
+        <input type="password" id="login-pass" class="login-input" placeholder="Password" onkeypress="if(event.key === 'Enter') attemptLogin()">
+        <button class="btn-login" id="btn-login-action" onclick="attemptLogin()">LOGIN</button>
+        <div id="login-msg" style="margin-top:15px; color:#e74c3c; font-weight:bold; font-size:14px; display:none;"></div>
+    </div>
+</div>
 
 <div class="app-header">
     <div class="logo-area">
         <img src="https://wccpa.github.io/shop/WCC1.jpg" class="logo-img" alt="WCC Logo">
         <span class="header-title">WCC MILEAGE AND EXPENSE</span>
     </div>
-    <button class="btn-refresh" onclick="location.reload()" title="Refresh App">↻</button>
+    <div style="display:flex; gap:5px;">
+        <button class="btn-refresh" onclick="openLogoutModal()" title="Log Out" style="background:#e74c3c; color:white; box-shadow: 0 3px 0 #c0392b;">🔓</button>
+        <button class="btn-refresh" onclick="location.reload()" title="Refresh App">↻</button>
+    </div>
 </div>
 
 <div class="container">
@@ -230,15 +284,22 @@
         <button class="toggle-btn" onclick="switchMode('reports')" id="btn-rep">📊 Reports</button>
     </div>
 
+    <div id="edit-indicator" style="display:none; background:#f39c12; color:white; padding:10px; margin-bottom:15px; border-radius:5px; font-weight:bold;">
+        ✏️ EDITING MODE
+        <button onclick="initiateDelete()" style="float:left; background:#c0392b; border:none; color:white; font-weight:bold; cursor:pointer; padding:2px 8px; border-radius:4px;">🗑️ DELETE</button>
+        <button onclick="userCancelEdit()" style="float:right; background:transparent; border:none; color:white; font-weight:bold; cursor:pointer;">CANCEL ✕</button>
+        <div style="clear:both;"></div>
+    </div>
+
     <div id="form-expense">
         <input type="date" id="ex-date" class="req">
         <input type="text" id="ex-item" class="req" placeholder="Item Name *">
         <input type="text" id="ex-cat" class="req" list="cat-list" placeholder="Category (Select or Type New) *">
         <datalist id="cat-list"></datalist>
-        <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01">
+        <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01" onchange="if(this.value) this.value=parseFloat(this.value).toFixed(2)">
         <input type="text" id="ex-vendor" class="req" placeholder="Vendor (e.g. Home Depot) *">
         <textarea id="ex-notes" placeholder="Notes (Optional)..."></textarea>
-        <button class="submit" onclick="submitExpense()">SAVE EXPENSE</button>
+        <button class="submit" id="btn-submit-exp" onclick="submitExpense()">SAVE EXPENSE</button>
     </div>
 
     <div id="form-mileage" class="hidden">
@@ -258,7 +319,7 @@
         <datalist id="reason-list"></datalist>
         
         <textarea id="mi-notes" placeholder="Mileage Notes (Optional)..."></textarea>
-        <button class="submit" style="background:#e67e22; box-shadow: 0 5px 0 #d35400;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
+        <button class="submit" id="btn-submit-mil" style="background:#e67e22; box-shadow: 0 5px 0 #d35400;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
     </div>
 
     <div id="form-reports" class="hidden">
@@ -343,18 +404,52 @@
     </div>
 </div>
 
+<div id="logout-modal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="font-size:50px;">👋</div>
+        <h3 style="margin-top:10px;">Log Out?</h3>
+        <p style="color:#666; font-size:14px; margin-bottom:20px;">You will need to sign in again next time.</p>
+        <div style="display:flex; gap:10px; width:100%;">
+            <button class="modal-btn" style="background:#7f8c8d; box-shadow: 0 4px 0 #616a6b;" onclick="closeLogoutModal()">CANCEL</button>
+            <button class="modal-btn" style="background:#e74c3c; box-shadow: 0 4px 0 #c0392b;" onclick="confirmLogout()">LOG OUT</button>
+        </div>
+    </div>
+</div>
+
+<div id="delete-modal" class="modal-overlay">
+    <div class="modal-card">
+        <div style="font-size:50px;">🗑️</div>
+        <h3 style="margin-top:10px; color:#c0392b;">Delete Entry?</h3>
+        <p style="color:#666; font-size:14px; margin-bottom:10px;">This cannot be undone.</p>
+        
+        <div id="delete-summary" style="background:#f9f9f9; width:100%; padding:15px; border:1px solid #ddd; border-radius:8px; margin-bottom:20px; font-size:13px; text-align:left;">
+            </div>
+
+        <div style="display:flex; gap:10px; width:100%;">
+            <button class="modal-btn" style="background:#7f8c8d; box-shadow: 0 4px 0 #616a6b;" onclick="closeDeleteModal()">CANCEL</button>
+            <button class="modal-btn" style="background:#c0392b; box-shadow: 0 4px 0 #922b21;" onclick="confirmDelete()">CONFIRM DELETE</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
     let pendingMileageData = {};
-    let rawReportData = []; // Stores the raw fetch result
-    let filteredReportData = []; // Stores processed/sorted data
+    let rawReportData = []; 
+    let filteredReportData = []; 
     let currentReportType = "Mileage"; 
     
+    // EDITING STATE
+    let editingRowId = null; 
+    let editingType = null; // 'Expense' or 'Mileage'
+
     // DEFAULTS
     const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"];
     const defaultReasons = ["Site Visit", "Material Run", "Client Meeting", "Estimate"];
 
     window.onload = function() {
+        checkLoginStatus(); 
+
         const now = new Date();
         const y = now.getFullYear();
         const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -368,6 +463,47 @@
 
         fetchDropdownData();
     };
+
+    // --- LOGIN LOGIC ---
+    function checkLoginStatus() {
+        const auth = localStorage.getItem('wcc_auth_user');
+        if(auth) {
+            document.getElementById('login-overlay').style.display = 'none';
+        } else {
+            document.getElementById('login-overlay').style.display = 'flex';
+        }
+    }
+
+    function attemptLogin() {
+        const u = document.getElementById('login-user').value;
+        const p = document.getElementById('login-pass').value;
+        const msg = document.getElementById('login-msg');
+        const btn = document.getElementById('btn-login-action');
+
+        if(!u || !p) {
+            msg.style.display = 'block';
+            msg.innerText = "Please enter username and password.";
+            return;
+        }
+
+        btn.innerText = "VERIFYING...";
+        msg.style.display = 'none';
+
+        callScript({ type: "verify_user", user: u, pass: p }, (resp) => {
+            if(resp.status === "success") {
+                localStorage.setItem('wcc_auth_user', u); // SAVE AUTH
+                document.getElementById('login-overlay').style.display = 'none';
+            } else {
+                msg.style.display = 'block';
+                msg.innerText = resp.msg || "Login Failed.";
+                btn.innerText = "LOGIN";
+            }
+        });
+    }
+
+    function openLogoutModal() { document.getElementById('logout-modal').style.display = 'flex'; }
+    function closeLogoutModal() { document.getElementById('logout-modal').style.display = 'none'; }
+    function confirmLogout() { localStorage.removeItem('wcc_auth_user'); location.reload(); }
 
     function fetchDropdownData() {
         callScript({ type: "get_dropdown_data" }, (resp) => {
@@ -399,6 +535,160 @@
         document.getElementById('form-reports').style.display = mode === 'reports' ? 'block' : 'none';
     }
 
+    // --- DELETE LOGIC ---
+    function initiateDelete() {
+        if(!editingRowId) return;
+
+        let summary = "";
+        
+        // Helper to flip date from yyyy-mm-dd to mm-dd-yyyy
+        const formatDateForDisplay = (val) => {
+            if(!val) return "";
+            const parts = val.split('-');
+            if(parts.length === 3) return `${parts[1]}-${parts[2]}-${parts[0]}`;
+            return val;
+        };
+        
+        if (editingType === 'Expense') {
+            summary += `<strong>Type:</strong> Expense<br>`;
+            summary += `<strong>Date:</strong> ${formatDateForDisplay(document.getElementById('ex-date').value)}<br>`;
+            summary += `<strong>Item:</strong> ${document.getElementById('ex-item').value}<br>`;
+            summary += `<strong>Cost:</strong> $${parseFloat(document.getElementById('ex-cost').value || 0).toFixed(2)}`;
+        } else {
+            summary += `<strong>Type:</strong> Mileage<br>`;
+            summary += `<strong>Date:</strong> ${formatDateForDisplay(document.getElementById('mi-date').value)}<br>`;
+            summary += `<strong>Start:</strong> ${document.getElementById('mi-start').value}<br>`;
+            summary += `<strong>Reason:</strong> ${document.getElementById('mi-reason').value}`;
+        }
+
+        document.getElementById('delete-summary').innerHTML = summary;
+        document.getElementById('delete-modal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delete-modal').style.display = 'none';
+    }
+
+    function confirmDelete() {
+        closeDeleteModal();
+        showStatusModal("loading", "Deleting...");
+        
+        // Determine sheet name
+        let sheetName = (editingType === 'Expense') ? 'Expenses' : 'Mileage';
+
+        callScript({ 
+            type: "delete_row", 
+            sheetType: sheetName,
+            row: editingRowId
+        }, (resp) => {
+            if(resp.status === "success") {
+                showStatusModal("success", "Entry Deleted Successfully");
+                
+                // Wait 1.5 seconds for the success message, then reload the page
+                setTimeout(() => {
+                    location.reload(); 
+                }, 1500);
+            } else {
+                showStatusModal("error", resp.msg || "Delete Failed");
+            }
+        });
+    }
+
+    // --- EDITING LOGIC ---
+    function resetFormState() {
+        editingRowId = null;
+        editingType = null;
+        document.getElementById('edit-indicator').style.display = 'none';
+        
+        var btnExp = document.getElementById('btn-submit-exp');
+        btnExp.innerText = "SAVE EXPENSE";
+        btnExp.style.background = "#27ae60";
+        btnExp.style.boxShadow = "0 5px 0 #1e8449";
+
+        document.getElementById('btn-submit-mil').innerText = "VERIFY & PREVIEW ROUTE";
+        
+        document.getElementById('ex-item').value = '';
+        document.getElementById('ex-cat').value = '';
+        document.getElementById('ex-cost').value = '';
+        document.getElementById('ex-vendor').value = '';
+        document.getElementById('ex-notes').value = '';
+        
+        document.getElementById('mi-reason').value = '';
+        document.getElementById('mi-notes').value = '';
+        
+        const container = document.getElementById('stops-container');
+        container.innerHTML = '<div class="stop-row"><input type="text" class="stop-input req" placeholder="Stop 1 *"></div>';
+    }
+
+    function userCancelEdit() {
+        resetFormState();
+        showStatusModal("success", "Edit Cancelled. Form cleared.");
+    }
+
+    function formatEditDate(dateStr) {
+        const d = new Date(dateStr);
+        if(!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        return dateStr;
+    }
+
+    function editExpense(index) {
+        const item = filteredReportData[index];
+        editingRowId = item.rowId; 
+        editingType = "Expense";
+
+        switchMode('expense');
+        document.getElementById('edit-indicator').style.display = 'block';
+        
+        var btnExp = document.getElementById('btn-submit-exp');
+        btnExp.innerText = "UPDATE EXPENSE";
+        btnExp.style.background = "#d35400"; 
+        btnExp.style.boxShadow = "0 5px 0 #a04000"; 
+
+        document.getElementById('ex-date').value = formatEditDate(item.date);
+        document.getElementById('ex-item').value = item.item;
+        document.getElementById('ex-cat').value = item.category;
+        document.getElementById('ex-cost').value = String(item.cost).replace(/[^\d.-]/g, '');
+        document.getElementById('ex-vendor').value = item.vendor;
+        document.getElementById('ex-notes').value = item.notes || "";
+
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function editMileage(index) {
+        const item = filteredReportData[index];
+        editingRowId = item.rowId;
+        editingType = "Mileage";
+
+        switchMode('mileage');
+        document.getElementById('edit-indicator').style.display = 'block';
+        document.getElementById('btn-submit-mil').innerText = "UPDATE TRIP (VERIFY FIRST)";
+        
+        document.getElementById('mi-date').value = formatEditDate(item.date);
+        document.getElementById('mi-start').value = item.start;
+        document.getElementById('mi-reason').value = item.reason;
+        document.getElementById('mi-notes').value = item.notes || "";
+
+        const container = document.getElementById('stops-container');
+        container.innerHTML = "";
+        
+        if(item.route) {
+            let stops = [];
+            if(item.route.includes(" ➔ ")) stops = item.route.split(" ➔ ");
+            else stops = [item.route];
+
+            stops.forEach((stopName) => {
+                const div = document.createElement('div');
+                div.className = 'stop-row';
+                div.innerHTML = `<input type="text" class="stop-input req" value="${stopName.trim()}" placeholder="Stop *"><button class="btn-remove-stop" onclick="this.parentElement.remove()">-</button>`;
+                container.appendChild(div);
+            });
+        } else {
+            addStopInput(); 
+        }
+
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
     // --- MILEAGE ACTIONS ---
     function previewMileage() {
         const s = document.getElementById('mi-start').value.toUpperCase();
@@ -422,9 +712,11 @@
     }
 
     function finalSaveMileage() {
-        showStatusModal("loading", "Saving...");
+        showStatusModal("loading", editingRowId ? "Updating..." : "Saving...");
+        
         callScript({
             type: "mileage_save",
+            row: editingRowId, 
             date: pendingMileageData.date,
             startLoc: pendingMileageData.startLoc,
             endLoc: pendingMileageData.endLoc,
@@ -433,9 +725,7 @@
             notes: pendingMileageData.notes
         }, (resp) => {
             showStatusModal("success", resp.msg);
-            document.querySelectorAll('.stop-input').forEach((el, i) => { if(i === 0) el.value = ''; else el.parentElement.remove(); });
-            document.getElementById('mi-reason').value = '';
-            document.getElementById('mi-notes').value = '';
+            resetFormState();
             setTimeout(fetchDropdownData, 1000); 
         });
     }
@@ -451,14 +741,15 @@
 
         if(!dt || !it || !cat || !cst || !ven) { showStatusModal("error", "Fill all fields."); return; }
         
-        showStatusModal("loading", "Saving...");
-        callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, vendor: ven, notes: note }, () => {
-            showStatusModal("success", "Expense Saved!");
-            document.getElementById('ex-item').value = '';
-            document.getElementById('ex-cat').value = ''; 
-            document.getElementById('ex-cost').value = '';
-            document.getElementById('ex-vendor').value = ''; 
-            document.getElementById('ex-notes').value = '';
+        showStatusModal("loading", editingRowId ? "Updating..." : "Saving...");
+        
+        callScript({ 
+            type: "expense", 
+            row: editingRowId, 
+            date: dt, item: it, category: cat, cost: cst, vendor: ven, notes: note 
+        }, () => {
+            showStatusModal("success", editingRowId ? "Expense Updated!" : "Expense Saved!");
+            resetFormState();
             setTimeout(fetchDropdownData, 1000);
         });
     }
@@ -470,7 +761,6 @@
         const action = type === 'expense' ? 'get_expense_report' : 'get_mileage_report';
         currentReportType = type === 'expense' ? "Expense" : "Mileage";
 
-        // Toggle Filter Bars
         document.getElementById('filter-mileage').style.display = (type === 'mileage') ? 'block' : 'none';
         document.getElementById('filter-expense').style.display = (type === 'expense') ? 'block' : 'none';
 
@@ -478,13 +768,9 @@
         callScript({ type: action, startDate: s, endDate: e }, (resp) => {
             closeStatusModal();
             if(resp.status === "success") {
-                rawReportData = resp.data; // SAVE RAW
-                
-                // Populate Filters based on returned data
+                rawReportData = resp.data;
                 if(type === 'mileage') populateMileageFilters(rawReportData);
                 else populateExpenseFilters(rawReportData);
-
-                // Run Initial View
                 updateReportView();
             }
             else alert(resp.msg);
@@ -502,19 +788,16 @@
     function populateExpenseFilters(data) {
         const cats = [...new Set(data.map(d => d.category.toUpperCase()))].sort();
         const vends = [...new Set(data.map(d => d.vendor.toUpperCase()))].sort();
-        
         const cSel = document.getElementById('fil-exp-cat');
         cSel.innerHTML = '<option value="ALL">All Categories</option>';
         cats.forEach(c => { cSel.innerHTML += `<option value="${c}">${c}</option>`; });
         cSel.value = "ALL";
-
         const vSel = document.getElementById('fil-exp-vend');
         vSel.innerHTML = '<option value="ALL">All Vendors</option>';
         vends.forEach(v => { vSel.innerHTML += `<option value="${v}">${v}</option>`; });
         vSel.value = "ALL";
     }
 
-    // NEW: RESET FILTERS FUNCTION
     function resetFilters() {
         if (currentReportType === 'Mileage') {
             document.getElementById('fil-mil-reason').value = 'ALL';
@@ -528,18 +811,10 @@
     }
 
     function updateReportView() {
-        // Start with raw data
         filteredReportData = [...rawReportData];
-        const sDate = document.getElementById('rep-start').value;
-        const eDate = document.getElementById('rep-end').value;
-
         if (currentReportType === 'Mileage') {
-            // FILTER
             const reasonFilter = document.getElementById('fil-mil-reason').value;
-            if (reasonFilter !== 'ALL') {
-                filteredReportData = filteredReportData.filter(d => d.reason.toUpperCase() === reasonFilter);
-            }
-            // SORT
+            if (reasonFilter !== 'ALL') filteredReportData = filteredReportData.filter(d => d.reason.toUpperCase() === reasonFilter);
             const sortMode = document.getElementById('sort-mil').value;
             filteredReportData.sort((a, b) => {
                 if (sortMode === 'date-desc') return new Date(b.date) - new Date(a.date);
@@ -547,17 +822,12 @@
                 if (sortMode === 'miles-desc') return parseFloat(b.miles) - parseFloat(a.miles);
                 if (sortMode === 'miles-asc') return parseFloat(a.miles) - parseFloat(b.miles);
             });
-            renderMileageReport(filteredReportData, sDate, eDate);
-
+            renderMileageReport(filteredReportData);
         } else {
-            // FILTER
             const catFilter = document.getElementById('fil-exp-cat').value;
             const vendFilter = document.getElementById('fil-exp-vend').value;
-            
             if (catFilter !== 'ALL') filteredReportData = filteredReportData.filter(d => d.category.toUpperCase() === catFilter);
             if (vendFilter !== 'ALL') filteredReportData = filteredReportData.filter(d => d.vendor.toUpperCase() === vendFilter);
-
-            // SORT
             const sortMode = document.getElementById('sort-exp').value;
             filteredReportData.sort((a, b) => {
                 if (sortMode === 'date-desc') return new Date(b.date) - new Date(a.date);
@@ -565,25 +835,23 @@
                 if (sortMode === 'cost-desc') return parseFloat(b.cost) - parseFloat(a.cost);
                 if (sortMode === 'cost-asc') return parseFloat(a.cost) - parseFloat(b.cost);
             });
-            renderExpenseReport(filteredReportData, sDate, eDate);
+            renderExpenseReport(filteredReportData);
         }
     }
 
-    function renderMileageReport(data, start, end) {
-        setupReportHeader("Mileage Report", start, end);
+    function renderMileageReport(data) {
+        setupReportHeader("Mileage Report", document.getElementById('rep-start').value, document.getElementById('rep-end').value);
         document.getElementById('lbl-1').innerText = "Total Trips";
         document.getElementById('lbl-2').innerText = "Total Miles";
-
         let totalVal = 0;
         const listDiv = document.getElementById('report-list');
         listDiv.innerHTML = data.length ? "" : "No logs found matching filters.";
-
-        data.forEach(row => {
+        data.forEach((row, index) => {
             let mVal = parseFloat(String(row.miles).replace(/[^\d.-]/g, '')) || 0;
             totalVal += mVal;
-
             listDiv.innerHTML += `
             <div class="report-card">
+                <button class="btn-edit" onclick="editMileage(${index})">✏️</button>
                 <div class="rep-header-row">
                     <span class="rep-date">${row.date}</span>
                     <span class="rep-miles-val">${mVal.toFixed(1)} mi</span>
@@ -600,21 +868,19 @@
         document.getElementById('sum-val-2').innerText = totalVal.toFixed(1);
     }
 
-    function renderExpenseReport(data, start, end) {
-        setupReportHeader("Expense Report", start, end);
+    function renderExpenseReport(data) {
+        setupReportHeader("Expense Report", document.getElementById('rep-start').value, document.getElementById('rep-end').value);
         document.getElementById('lbl-1').innerText = "Total Items";
         document.getElementById('lbl-2').innerText = "Total Cost";
-
         let totalVal = 0;
         const listDiv = document.getElementById('report-list');
         listDiv.innerHTML = data.length ? "" : "No logs found matching filters.";
-
-        data.forEach(row => {
+        data.forEach((row, index) => {
             let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
             totalVal += cVal;
-
             listDiv.innerHTML += `
             <div class="report-card" style="border-left: 5px solid #2980b9;">
+                <button class="btn-edit" onclick="editExpense(${index})">✏️</button>
                 <div class="rep-header-row">
                     <span class="rep-date">${row.date}</span>
                     <span class="rep-miles-val" style="color:#2980b9;">$${cVal.toFixed(2)}</span>
@@ -647,7 +913,6 @@
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         const tStr = `${h}:${p(now.getMinutes())}:${p(now.getSeconds())}${ampm}`;
-
         const oldTitle = document.title;
         document.title = `Weekend Custom Creations LLC - ${currentReportType} Report - ${dStr} - ${tStr}`;
         window.print();
@@ -656,7 +921,6 @@
 
     function downloadCSV() {
         if (!filteredReportData.length) { alert("No data to export. Generate a report first."); return; }
-
         let csv = [];
         const now = new Date();
         const p = (n) => n.toString().padStart(2, '0');
@@ -694,7 +958,6 @@
                 ]);
             });
         }
-
         const blob = new Blob([csv.map(e => e.join(",")).join("\n")], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -705,7 +968,6 @@
         document.body.removeChild(link);
     }
 
-    // --- SHARED UTILS ---
     function addStopInput() {
         const c = document.getElementById('stops-container');
         const d = document.createElement('div');
@@ -716,7 +978,6 @@
 
     function fillHomeBase() { const s = localStorage.getItem('wcc_home_base'); if(s) document.getElementById('mi-start').value = s; else openBaseModal(); }
     function openBaseModal() { document.getElementById('base-modal').style.display = 'flex'; if(localStorage.getItem('wcc_home_base')) document.getElementById('base-address-input').value = localStorage.getItem('wcc_home_base'); }
-    // FORCE UPPERCASE ON SAVE
     function saveHomeBase() { const a = document.getElementById('base-address-input').value.toUpperCase(); if(a) { localStorage.setItem('wcc_home_base', a); document.getElementById('base-modal').style.display='none'; if(!document.getElementById('mi-start').value) document.getElementById('mi-start').value=a; } }
 
     function callScript(data, callback) {
@@ -752,7 +1013,7 @@
         document.getElementById('modal-actions').style.display = "flex";
         let d = ""; st.forEach(x => d += `+to:${encodeURIComponent(x)}`); d += `+to:${encodeURIComponent(s)}`;
         const frame = document.getElementById('map-frame');
-        frame.src = `https://maps.google.com/maps?q=${encodeURIComponent(s)}&daddr=${d.substring(4)}&output=embed`;
+        frame.src = `https://maps.google.com/maps?f=d&source=s_d&saddr=${encodeURIComponent(s)}&daddr=${d.substring(4)}&output=embed`;
         frame.style.display = "block";
     }
 
