@@ -210,7 +210,13 @@
 
     // SET DEFAULT DATES ON LOAD & LOAD CATEGORIES
     window.onload = function() {
-        const today = new Date().toISOString().split('T')[0];
+        // FIXED DATE LOGIC: Use local time instead of UTC to fix timezone jump
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const today = `${year}-${month}-${day}`;
+
         document.getElementById('ex-date').value = today;
         document.getElementById('mi-date').value = today;
         loadCategories(); // Load the dynamic categories
