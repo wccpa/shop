@@ -31,7 +31,7 @@
             width: 45px; height: 45px; border-radius: 50%;
             font-size: 24px; cursor: pointer; display: flex;
             align-items: center; justify-content: center;
-            transition: 0.1s; box-shadow: 0 3px 0 #bdc3c7; /* 3D Effect */
+            transition: 0.1s; box-shadow: 0 3px 0 #bdc3c7;
         }
         .btn-refresh:active { transform: translateY(3px); box-shadow: none; }
 
@@ -48,43 +48,36 @@
         .req { border-left: 5px solid #e74c3c !important; }
         input[type="date"] { background-color: #f9f9f9; color: #2c3e50; font-weight: bold; }
 
-        /* --- 3D BUTTON STYLES --- */
-        
-        /* General Button Reset */
+        /* 3D BUTTONS */
         button { font-family: inherit; }
-
-        /* Submit / Save Button (Green) */
         button.submit { 
             width: 100%; padding: 18px; background: #27ae60; color: white; 
             border: none; border-radius: 8px; font-size: 18px; font-weight: bold; 
             cursor: pointer; margin-top: 10px; 
-            box-shadow: 0 5px 0 #1e8449; /* Darker Green Shadow */
+            box-shadow: 0 5px 0 #1e8449; 
             transition: all 0.1s; 
         }
         button.submit:active { transform: translateY(5px); box-shadow: none; }
 
-        /* Fill Button (Blue) */
         .btn-fill { 
             background: #3498db; color: white; border: none; border-radius: 8px; 
             width: 60px; font-size: 24px; cursor: pointer; 
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 5px 0 #2980b9; /* Darker Blue Shadow */
+            box-shadow: 0 5px 0 #2980b9; 
             transition: all 0.1s;
         }
         .btn-fill:active { transform: translateY(5px); box-shadow: none; }
 
-        /* Set Base Button (Grey) */
         .btn-set-base { 
             background: #95a5a6; color: white; border: none; padding: 12px; 
             border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; 
             font-size: 14px; font-weight: bold; display: flex; align-items: center; 
             justify-content: center; gap: 8px;
-            box-shadow: 0 4px 0 #7f8c8d; /* Darker Grey Shadow */
+            box-shadow: 0 4px 0 #7f8c8d;
             transition: all 0.1s;
         }
         .btn-set-base:active { transform: translateY(4px); box-shadow: none; }
 
-        /* Add Stop Button (Blue) */
         .btn-add-stop { 
             background: #3498db; color: white; border: none; padding: 12px; 
             border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; 
@@ -94,18 +87,16 @@
         }
         .btn-add-stop:active { transform: translateY(4px); box-shadow: none; }
 
-        /* Remove Stop Button (Red) */
         .btn-remove-stop { 
             background: #e74c3c; color: white; border: none; padding: 0 15px; 
             height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; 
             font-size: 20px; display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 4px 0 #c0392b; /* Darker Red Shadow */
+            box-shadow: 0 4px 0 #c0392b;
             transition: all 0.1s;
-            margin-bottom: 4px; /* compensate for shadow alignment */
+            margin-bottom: 4px;
         }
         .btn-remove-stop:active { transform: translateY(4px); box-shadow: none; margin-top: 4px; margin-bottom: 0; }
         
-        /* Report Gen Buttons */
         .btn-report-gen { 
             color: white; width: 100%; padding: 18px; border: none; 
             border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; 
@@ -113,7 +104,6 @@
         }
         .btn-report-gen:active { transform: translateY(4px); box-shadow: none !important; }
 
-        /* Action Group Buttons (Print/CSV) */
         .action-group { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
         
         .btn-print-action { 
@@ -232,6 +222,8 @@
         <input type="text" id="ex-cat" class="req" list="cat-list" placeholder="Category (Select or Type New) *">
         <datalist id="cat-list"></datalist>
         <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01">
+        <input type="text" id="ex-vendor" class="req" placeholder="Vendor (e.g. Home Depot) *">
+        
         <textarea id="ex-notes" placeholder="Notes (Optional)..."></textarea>
         <button class="submit" onclick="submitExpense()">SAVE EXPENSE</button>
     </div>
@@ -422,15 +414,19 @@
         const it = document.getElementById('ex-item').value.toUpperCase();
         const cat = document.getElementById('ex-cat').value.toUpperCase();
         const cst = document.getElementById('ex-cost').value;
+        const ven = document.getElementById('ex-vendor').value.toUpperCase(); // NEW VENDOR
         const note = document.getElementById('ex-notes').value.toUpperCase();
 
-        if(!dt || !it || !cat || !cst) { showStatusModal("error", "Fill all fields."); return; }
+        if(!dt || !it || !cat || !cst || !ven) { showStatusModal("error", "Fill all fields."); return; }
         
         showStatusModal("loading", "Saving...");
-        callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, notes: note }, () => {
+        // SEND VENDOR PARAM
+        callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, vendor: ven, notes: note }, () => {
             showStatusModal("success", "Expense Saved!");
             document.getElementById('ex-item').value = '';
+            document.getElementById('ex-cat').value = ''; // CLEARS CATEGORY
             document.getElementById('ex-cost').value = '';
+            document.getElementById('ex-vendor').value = ''; // CLEARS VENDOR
             document.getElementById('ex-notes').value = '';
             // Refresh dropdowns to include the new category
             setTimeout(fetchDropdownData, 1000);
@@ -509,6 +505,7 @@
                 <div class="rep-reason" style="color:#333;">${row.item}</div>
                 <div class="rep-route">
                     <strong>CATEGORY:</strong> ${row.category} <br>
+                    <strong>VENDOR:</strong> ${row.vendor || 'N/A'} <br>
                     ${row.notes ? `<div style="margin-top:5px; border-top:1px solid #ddd; padding-top:5px; font-style:italic; font-size:11px;">Note: ${row.notes}</div>` : ''}
                 </div>
             </div>`;
@@ -554,7 +551,8 @@
         const finalName = `Weekend Custom Creations LLC - ${currentReportType} Report - ${dStr} - ${tStr}.csv`;
         
         if (currentReportType === 'Expense') {
-            csv.push(["Date", "Item", "Category", "Cost", "Notes"]);
+            // UPDATED CSV HEADER WITH VENDOR
+            csv.push(["Date", "Item", "Category", "Cost", "Vendor", "Notes"]);
             lastReportData.forEach(row => {
                 let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
                 csv.push([
@@ -562,6 +560,7 @@
                     `"${row.item.replace(/"/g, '""')}"`, 
                     `"${row.category}"`, 
                     cVal.toFixed(2), 
+                    `"${(row.vendor||"").replace(/"/g, '""')}"`, // ADDED VENDOR
                     `"${(row.notes||"").replace(/"/g, '""')}"`
                 ]);
             });
