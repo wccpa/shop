@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WCC Expenses</title>
+    <title>WCC MILEAGE AND EXPENSE</title>
     <style>
         /* BASE STYLES */
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 10px; text-align: center; color: #333; margin: 0; padding-top: 80px; }
@@ -124,6 +124,20 @@
         }
         .btn-csv-action:active { transform: translateY(4px); box-shadow: none; }
 
+        /* FILTER BARS */
+        .filter-bar { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .filter-label { font-size: 11px; font-weight: bold; color: #7f8c8d; text-align: left; margin-bottom: 2px; text-transform: uppercase; }
+        .filter-select { margin-bottom: 10px; font-size: 14px; padding: 10px; background: white; width: 100%; border-radius: 4px; border: 1px solid #ccc; }
+        
+        /* RESET BUTTON */
+        .btn-reset {
+            background: #95a5a6; color: white; border: none; padding: 8px 15px; 
+            border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;
+            margin-top: 5px; width: auto; float: right;
+            box-shadow: 0 3px 0 #7f8c8d; transition: all 0.1s;
+        }
+        .btn-reset:active { transform: translateY(3px); box-shadow: none; }
+
         /* MILEAGE STOPS */
         .input-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-start; }
         .input-group input { margin-bottom: 0; flex: 1; }
@@ -166,7 +180,7 @@
 
         @media print {
             body { background: white; padding: 0; margin: 0; }
-            .app-header, .toggle-box, #report-controls, .btn-refresh, .action-group { display: none !important; }
+            .app-header, .toggle-box, #report-controls, .btn-refresh, .action-group, .filter-bar { display: none !important; }
             .container { box-shadow: none; max-width: 100%; width: 100%; padding: 0; margin: 0; }
             .report-header-print { display: flex !important; align-items: center; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; justify-content: space-between; text-align: left; }
             .ph-logo { height: 60px; width: 60px; object-fit: contain; }
@@ -223,7 +237,6 @@
         <datalist id="cat-list"></datalist>
         <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01">
         <input type="text" id="ex-vendor" class="req" placeholder="Vendor (e.g. Home Depot) *">
-        
         <textarea id="ex-notes" placeholder="Notes (Optional)..."></textarea>
         <button class="submit" onclick="submitExpense()">SAVE EXPENSE</button>
     </div>
@@ -276,6 +289,36 @@
                 <button class="btn-print-action" onclick="printReport()">🖨️ PRINT PDF</button>
                 <button class="btn-csv-action" onclick="downloadCSV()">💾 EXPORT CSV</button>
             </div>
+
+            <div id="filter-mileage" class="filter-bar">
+                <div class="filter-label">Filter Reason</div>
+                <select id="fil-mil-reason" class="filter-select" onchange="updateReportView()"></select>
+                <div class="filter-label">Sort By</div>
+                <select id="sort-mil" class="filter-select" onchange="updateReportView()">
+                    <option value="date-desc">Date (Newest First)</option>
+                    <option value="date-asc">Date (Oldest First)</option>
+                    <option value="miles-desc">Miles (High to Low)</option>
+                    <option value="miles-asc">Miles (Low to High)</option>
+                </select>
+                <button class="btn-reset" onclick="resetFilters()">↺ Reset Filters</button>
+                <div style="clear:both;"></div>
+            </div>
+
+            <div id="filter-expense" class="filter-bar">
+                <div class="filter-label">Filter Category</div>
+                <select id="fil-exp-cat" class="filter-select" onchange="updateReportView()"></select>
+                <div class="filter-label">Filter Vendor</div>
+                <select id="fil-exp-vend" class="filter-select" onchange="updateReportView()"></select>
+                <div class="filter-label">Sort By</div>
+                <select id="sort-exp" class="filter-select" onchange="updateReportView()">
+                    <option value="date-desc">Date (Newest First)</option>
+                    <option value="date-asc">Date (Oldest First)</option>
+                    <option value="cost-desc">Cost (High to Low)</option>
+                    <option value="cost-asc">Cost (Low to High)</option>
+                </select>
+                <button class="btn-reset" onclick="resetFilters()">↺ Reset Filters</button>
+                <div style="clear:both;"></div>
+            </div>
             
             <div class="summary-box">
                 <div class="sum-item"><div id="lbl-1">Total Trips</div><div id="sum-val-1">0</div></div>
@@ -303,10 +346,11 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
     let pendingMileageData = {};
-    let lastReportData = [];
+    let rawReportData = []; // Stores the raw fetch result
+    let filteredReportData = []; // Stores processed/sorted data
     let currentReportType = "Mileage"; 
     
-    // DEFAULTS if sheet is empty
+    // DEFAULTS
     const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"];
     const defaultReasons = ["Site Visit", "Material Run", "Client Meeting", "Estimate"];
 
@@ -322,31 +366,24 @@
         document.getElementById('rep-start').value = `${y}-${m}-01`;
         document.getElementById('rep-end').value = today;
 
-        // FETCH DROPDOWN DATA FROM GOOGLE SHEETS
         fetchDropdownData();
     };
 
     function fetchDropdownData() {
         callScript({ type: "get_dropdown_data" }, (resp) => {
             if(resp.status === "success") {
-                // Populate Expense Categories
                 const catList = document.getElementById('cat-list');
                 catList.innerHTML = "";
                 let cats = resp.categories.length ? resp.categories : defaultCats;
                 cats.sort().forEach(c => {
-                    let o = document.createElement('option'); 
-                    o.value = c.toUpperCase(); // Ensure suggestions are UPPERCASE
-                    catList.appendChild(o); 
+                    let o = document.createElement('option'); o.value = c.toUpperCase(); catList.appendChild(o); 
                 });
 
-                // Populate Mileage Reasons
                 const reasonList = document.getElementById('reason-list');
                 reasonList.innerHTML = "";
                 let reasons = resp.reasons.length ? resp.reasons : defaultReasons;
                 reasons.sort().forEach(r => {
-                    let o = document.createElement('option'); 
-                    o.value = r.toUpperCase(); // Ensure suggestions are UPPERCASE
-                    reasonList.appendChild(o); 
+                    let o = document.createElement('option'); o.value = r.toUpperCase(); reasonList.appendChild(o); 
                 });
             }
         });
@@ -364,14 +401,13 @@
 
     // --- MILEAGE ACTIONS ---
     function previewMileage() {
-        // FORCE UPPERCASE
         const s = document.getElementById('mi-start').value.toUpperCase();
         const r = document.getElementById('mi-reason').value.toUpperCase();
         const dt = document.getElementById('mi-date').value;
         const note = document.getElementById('mi-notes').value.toUpperCase();
         
         let stops = [];
-        document.querySelectorAll('.stop-input').forEach(i => { if(i.value.trim()) stops.push(i.value.trim().toUpperCase()); }); // FORCE UPPERCASE
+        document.querySelectorAll('.stop-input').forEach(i => { if(i.value.trim()) stops.push(i.value.trim().toUpperCase()); });
 
         if(!s || stops.length === 0 || !r) { showStatusModal("error", "Please fill required fields."); return; }
         
@@ -379,7 +415,6 @@
         callScript({ type: "mileage_preview", startLoc: s, stops: JSON.stringify(stops) }, (resp) => {
             if(resp.status === "error") showStatusModal("error", resp.msg);
             else {
-                // Save uppercased values to pending data
                 pendingMileageData = { date: dt, startLoc: resp.cleanStart, endLoc: resp.cleanStops.join(" ➔ "), reason: r, notes: note };
                 showConfirmation(resp.cleanStart, resp.cleanStops, resp.miles);
             }
@@ -388,7 +423,6 @@
 
     function finalSaveMileage() {
         showStatusModal("loading", "Saving...");
-        
         callScript({
             type: "mileage_save",
             date: pendingMileageData.date,
@@ -402,7 +436,6 @@
             document.querySelectorAll('.stop-input').forEach((el, i) => { if(i === 0) el.value = ''; else el.parentElement.remove(); });
             document.getElementById('mi-reason').value = '';
             document.getElementById('mi-notes').value = '';
-            // Refresh dropdowns to include the new one if necessary
             setTimeout(fetchDropdownData, 1000); 
         });
     }
@@ -410,46 +443,130 @@
     // --- EXPENSE ACTIONS ---
     function submitExpense() {
         const dt = document.getElementById('ex-date').value;
-        // FORCE UPPERCASE
         const it = document.getElementById('ex-item').value.toUpperCase();
         const cat = document.getElementById('ex-cat').value.toUpperCase();
         const cst = document.getElementById('ex-cost').value;
-        const ven = document.getElementById('ex-vendor').value.toUpperCase(); // NEW VENDOR
+        const ven = document.getElementById('ex-vendor').value.toUpperCase();
         const note = document.getElementById('ex-notes').value.toUpperCase();
 
         if(!dt || !it || !cat || !cst || !ven) { showStatusModal("error", "Fill all fields."); return; }
         
         showStatusModal("loading", "Saving...");
-        // SEND VENDOR PARAM
         callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, vendor: ven, notes: note }, () => {
             showStatusModal("success", "Expense Saved!");
             document.getElementById('ex-item').value = '';
-            document.getElementById('ex-cat').value = ''; // CLEARS CATEGORY
+            document.getElementById('ex-cat').value = ''; 
             document.getElementById('ex-cost').value = '';
-            document.getElementById('ex-vendor').value = ''; // CLEARS VENDOR
+            document.getElementById('ex-vendor').value = ''; 
             document.getElementById('ex-notes').value = '';
-            // Refresh dropdowns to include the new category
             setTimeout(fetchDropdownData, 1000);
         });
     }
 
-    // --- REPORT GENERATION ---
+    // --- REPORT LOGIC ---
     function generateReport(type) {
         const s = document.getElementById('rep-start').value;
         const e = document.getElementById('rep-end').value;
         const action = type === 'expense' ? 'get_expense_report' : 'get_mileage_report';
         currentReportType = type === 'expense' ? "Expense" : "Mileage";
 
+        // Toggle Filter Bars
+        document.getElementById('filter-mileage').style.display = (type === 'mileage') ? 'block' : 'none';
+        document.getElementById('filter-expense').style.display = (type === 'expense') ? 'block' : 'none';
+
         showStatusModal("loading", `Fetching ${currentReportType} Data...`);
         callScript({ type: action, startDate: s, endDate: e }, (resp) => {
             closeStatusModal();
             if(resp.status === "success") {
-                lastReportData = resp.data;
-                if(type === 'expense') renderExpenseReport(resp.data, s, e);
-                else renderMileageReport(resp.data, s, e);
+                rawReportData = resp.data; // SAVE RAW
+                
+                // Populate Filters based on returned data
+                if(type === 'mileage') populateMileageFilters(rawReportData);
+                else populateExpenseFilters(rawReportData);
+
+                // Run Initial View
+                updateReportView();
             }
             else alert(resp.msg);
         });
+    }
+
+    function populateMileageFilters(data) {
+        const reasons = [...new Set(data.map(d => d.reason.toUpperCase()))].sort();
+        const sel = document.getElementById('fil-mil-reason');
+        sel.innerHTML = '<option value="ALL">All Reasons</option>';
+        reasons.forEach(r => { sel.innerHTML += `<option value="${r}">${r}</option>`; });
+        sel.value = "ALL";
+    }
+
+    function populateExpenseFilters(data) {
+        const cats = [...new Set(data.map(d => d.category.toUpperCase()))].sort();
+        const vends = [...new Set(data.map(d => d.vendor.toUpperCase()))].sort();
+        
+        const cSel = document.getElementById('fil-exp-cat');
+        cSel.innerHTML = '<option value="ALL">All Categories</option>';
+        cats.forEach(c => { cSel.innerHTML += `<option value="${c}">${c}</option>`; });
+        cSel.value = "ALL";
+
+        const vSel = document.getElementById('fil-exp-vend');
+        vSel.innerHTML = '<option value="ALL">All Vendors</option>';
+        vends.forEach(v => { vSel.innerHTML += `<option value="${v}">${v}</option>`; });
+        vSel.value = "ALL";
+    }
+
+    // NEW: RESET FILTERS FUNCTION
+    function resetFilters() {
+        if (currentReportType === 'Mileage') {
+            document.getElementById('fil-mil-reason').value = 'ALL';
+            document.getElementById('sort-mil').value = 'date-desc';
+        } else {
+            document.getElementById('fil-exp-cat').value = 'ALL';
+            document.getElementById('fil-exp-vend').value = 'ALL';
+            document.getElementById('sort-exp').value = 'date-desc';
+        }
+        updateReportView();
+    }
+
+    function updateReportView() {
+        // Start with raw data
+        filteredReportData = [...rawReportData];
+        const sDate = document.getElementById('rep-start').value;
+        const eDate = document.getElementById('rep-end').value;
+
+        if (currentReportType === 'Mileage') {
+            // FILTER
+            const reasonFilter = document.getElementById('fil-mil-reason').value;
+            if (reasonFilter !== 'ALL') {
+                filteredReportData = filteredReportData.filter(d => d.reason.toUpperCase() === reasonFilter);
+            }
+            // SORT
+            const sortMode = document.getElementById('sort-mil').value;
+            filteredReportData.sort((a, b) => {
+                if (sortMode === 'date-desc') return new Date(b.date) - new Date(a.date);
+                if (sortMode === 'date-asc') return new Date(a.date) - new Date(b.date);
+                if (sortMode === 'miles-desc') return parseFloat(b.miles) - parseFloat(a.miles);
+                if (sortMode === 'miles-asc') return parseFloat(a.miles) - parseFloat(b.miles);
+            });
+            renderMileageReport(filteredReportData, sDate, eDate);
+
+        } else {
+            // FILTER
+            const catFilter = document.getElementById('fil-exp-cat').value;
+            const vendFilter = document.getElementById('fil-exp-vend').value;
+            
+            if (catFilter !== 'ALL') filteredReportData = filteredReportData.filter(d => d.category.toUpperCase() === catFilter);
+            if (vendFilter !== 'ALL') filteredReportData = filteredReportData.filter(d => d.vendor.toUpperCase() === vendFilter);
+
+            // SORT
+            const sortMode = document.getElementById('sort-exp').value;
+            filteredReportData.sort((a, b) => {
+                if (sortMode === 'date-desc') return new Date(b.date) - new Date(a.date);
+                if (sortMode === 'date-asc') return new Date(a.date) - new Date(b.date);
+                if (sortMode === 'cost-desc') return parseFloat(b.cost) - parseFloat(a.cost);
+                if (sortMode === 'cost-asc') return parseFloat(a.cost) - parseFloat(b.cost);
+            });
+            renderExpenseReport(filteredReportData, sDate, eDate);
+        }
     }
 
     function renderMileageReport(data, start, end) {
@@ -459,7 +576,7 @@
 
         let totalVal = 0;
         const listDiv = document.getElementById('report-list');
-        listDiv.innerHTML = data.length ? "" : "No logs found.";
+        listDiv.innerHTML = data.length ? "" : "No logs found matching filters.";
 
         data.forEach(row => {
             let mVal = parseFloat(String(row.miles).replace(/[^\d.-]/g, '')) || 0;
@@ -490,7 +607,7 @@
 
         let totalVal = 0;
         const listDiv = document.getElementById('report-list');
-        listDiv.innerHTML = data.length ? "" : "No logs found.";
+        listDiv.innerHTML = data.length ? "" : "No logs found matching filters.";
 
         data.forEach(row => {
             let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
@@ -538,7 +655,7 @@
     }
 
     function downloadCSV() {
-        if (!lastReportData.length) { alert("No data to export. Generate a report first."); return; }
+        if (!filteredReportData.length) { alert("No data to export. Generate a report first."); return; }
 
         let csv = [];
         const now = new Date();
@@ -551,22 +668,21 @@
         const finalName = `Weekend Custom Creations LLC - ${currentReportType} Report - ${dStr} - ${tStr}.csv`;
         
         if (currentReportType === 'Expense') {
-            // UPDATED CSV HEADER WITH VENDOR
             csv.push(["Date", "Item", "Category", "Cost", "Vendor", "Notes"]);
-            lastReportData.forEach(row => {
+            filteredReportData.forEach(row => {
                 let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
                 csv.push([
                     `"${row.date}"`, 
                     `"${row.item.replace(/"/g, '""')}"`, 
                     `"${row.category}"`, 
                     cVal.toFixed(2), 
-                    `"${(row.vendor||"").replace(/"/g, '""')}"`, // ADDED VENDOR
+                    `"${(row.vendor||"").replace(/"/g, '""')}"`,
                     `"${(row.notes||"").replace(/"/g, '""')}"`
                 ]);
             });
         } else {
             csv.push(["Date", "Start Location", "Route", "Miles", "Reason", "Notes"]);
-            lastReportData.forEach(row => {
+            filteredReportData.forEach(row => {
                 let mVal = parseFloat(String(row.miles).replace(/[^\d.-]/g, '')) || 0;
                 csv.push([
                     `"${row.date}"`, 
