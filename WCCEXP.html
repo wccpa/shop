@@ -31,40 +31,113 @@
             width: 45px; height: 45px; border-radius: 50%;
             font-size: 24px; cursor: pointer; display: flex;
             align-items: center; justify-content: center;
-            transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: 0.1s; box-shadow: 0 3px 0 #bdc3c7; /* 3D Effect */
         }
-        .btn-refresh:active { transform: rotate(180deg); background: #bdc3c7; }
+        .btn-refresh:active { transform: translateY(3px); box-shadow: none; }
 
         /* TOGGLES */
         .toggle-box { display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
-        .toggle-btn { flex: 1; padding: 15px; border: none; cursor: pointer; font-weight: bold; background: #f1f2f6; transition: 0.3s; font-size: 14px; }
+        .toggle-btn { flex: 1; padding: 15px; border: none; cursor: pointer; font-weight: bold; background: #f1f2f6; transition: 0.2s; font-size: 14px; }
         .active-mode { background: #2c3e50; color: white; }
 
         /* INPUTS */
         input, select, textarea { width: 100%; padding: 16px; border: 2px solid #eee; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; -webkit-appearance: none; }
+        input[type="text"], textarea { text-transform: uppercase; } 
         input:focus, select:focus, textarea:focus { border-color: #3498db; outline: none; }
         textarea { resize: vertical; min-height: 100px; font-family: inherit; }
         .req { border-left: 5px solid #e74c3c !important; }
         input[type="date"] { background-color: #f9f9f9; color: #2c3e50; font-weight: bold; }
 
-        /* BUTTONS */
-        button.submit { width: 100%; padding: 18px; background: #27ae60; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .btn-fill { background: #3498db; color: white; border: none; border-radius: 8px; width: 60px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .btn-set-base { background: #7f8c8d; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-add-stop { background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; font-weight: bold; }
-        .btn-remove-stop { background: #e74c3c; color: white; border: none; padding: 0 15px; height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+        /* --- 3D BUTTON STYLES --- */
         
-        .btn-report-gen { background: #8e44ad; color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 5px; }
+        /* General Button Reset */
+        button { font-family: inherit; }
+
+        /* Submit / Save Button (Green) */
+        button.submit { 
+            width: 100%; padding: 18px; background: #27ae60; color: white; 
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold; 
+            cursor: pointer; margin-top: 10px; 
+            box-shadow: 0 5px 0 #1e8449; /* Darker Green Shadow */
+            transition: all 0.1s; 
+        }
+        button.submit:active { transform: translateY(5px); box-shadow: none; }
+
+        /* Fill Button (Blue) */
+        .btn-fill { 
+            background: #3498db; color: white; border: none; border-radius: 8px; 
+            width: 60px; font-size: 24px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px 0 #2980b9; /* Darker Blue Shadow */
+            transition: all 0.1s;
+        }
+        .btn-fill:active { transform: translateY(5px); box-shadow: none; }
+
+        /* Set Base Button (Grey) */
+        .btn-set-base { 
+            background: #95a5a6; color: white; border: none; padding: 12px; 
+            border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; 
+            font-size: 14px; font-weight: bold; display: flex; align-items: center; 
+            justify-content: center; gap: 8px;
+            box-shadow: 0 4px 0 #7f8c8d; /* Darker Grey Shadow */
+            transition: all 0.1s;
+        }
+        .btn-set-base:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Add Stop Button (Blue) */
+        .btn-add-stop { 
+            background: #3498db; color: white; border: none; padding: 12px; 
+            border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; 
+            font-weight: bold;
+            box-shadow: 0 4px 0 #2980b9;
+            transition: all 0.1s;
+        }
+        .btn-add-stop:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Remove Stop Button (Red) */
+        .btn-remove-stop { 
+            background: #e74c3c; color: white; border: none; padding: 0 15px; 
+            height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; 
+            font-size: 20px; display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 0 #c0392b; /* Darker Red Shadow */
+            transition: all 0.1s;
+            margin-bottom: 4px; /* compensate for shadow alignment */
+        }
+        .btn-remove-stop:active { transform: translateY(4px); box-shadow: none; margin-top: 4px; margin-bottom: 0; }
         
-        /* NEW ACTION GROUP FOR PRINT/CSV */
+        /* Report Gen Buttons */
+        .btn-report-gen { 
+            color: white; width: 100%; padding: 18px; border: none; 
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; 
+            margin-top: 5px; transition: all 0.1s;
+        }
+        .btn-report-gen:active { transform: translateY(4px); box-shadow: none !important; }
+
+        /* Action Group Buttons (Print/CSV) */
         .action-group { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
-        .btn-print-action { flex: 1; background: #7f8c8d; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-csv-action { flex: 1; background: #27ae60; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        .btn-print-action { 
+            flex: 1; background: #7f8c8d; color: white; padding: 14px; 
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; 
+            font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; 
+            box-shadow: 0 4px 0 #5f6a6b;
+            transition: all 0.1s;
+        }
+        .btn-print-action:active { transform: translateY(4px); box-shadow: none; }
+
+        .btn-csv-action { 
+            flex: 1; background: #27ae60; color: white; padding: 14px; 
+            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; 
+            font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; 
+            box-shadow: 0 4px 0 #1e8449;
+            transition: all 0.1s;
+        }
+        .btn-csv-action:active { transform: translateY(4px); box-shadow: none; }
 
         /* MILEAGE STOPS */
-        .input-group { display: flex; gap: 5px; margin-bottom: 15px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-start; }
         .input-group input { margin-bottom: 0; flex: 1; }
-        .stop-row { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+        .stop-row { display: flex; gap: 5px; margin-bottom: 10px; align-items: flex-start; }
         .stop-input { margin-bottom: 0 !important; flex: 1; }
 
         .hidden { display: none; }
@@ -77,7 +150,13 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #map-frame { width: 100%; height: 250px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; display: none; background: #eee; }
         .modal-btn-group { display: flex; gap: 15px; width: 100%; display: none; }
-        .modal-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 16px; }
+        
+        .modal-btn { 
+            flex: 1; padding: 15px; border: none; border-radius: 8px; 
+            font-weight: bold; color: white; cursor: pointer; font-size: 16px; 
+            transition: all 0.1s;
+        }
+        .modal-btn:active { transform: translateY(4px); box-shadow: none !important; }
 
         /* REPORT STYLING */
         .report-section { display: none; margin-top: 20px; }
@@ -133,11 +212,11 @@
                 <div style="font-size:12px; color:#777;">Full Loop Calculated</div>
             </div>
             <div id="modal-actions" class="modal-btn-group">
-                <button class="modal-btn" style="background:#7f8c8d;" onclick="closeStatusModal()">CANCEL</button>
-                <button class="modal-btn" style="background:#27ae60;" onclick="finalSaveMileage()">CONFIRM & SAVE</button>
+                <button class="modal-btn" style="background:#7f8c8d; box-shadow: 0 4px 0 #616a6b;" onclick="closeStatusModal()">CANCEL</button>
+                <button class="modal-btn" style="background:#27ae60; box-shadow: 0 4px 0 #1e8449;" onclick="finalSaveMileage()">CONFIRM & SAVE</button>
             </div>
-            <button id="btn-error-close" class="modal-btn" style="display:none; background:#c0392b; width:100%;" onclick="closeStatusModal()">GO BACK</button>
-            <button id="btn-success-close" class="modal-btn" style="display:none; background:#27ae60; width:100%;" onclick="closeStatusModal()">CLOSE</button>
+            <button id="btn-error-close" class="modal-btn" style="display:none; background:#c0392b; width:100%; box-shadow: 0 4px 0 #922b21;" onclick="closeStatusModal()">GO BACK</button>
+            <button id="btn-success-close" class="modal-btn" style="display:none; background:#27ae60; width:100%; box-shadow: 0 4px 0 #1e8449;" onclick="closeStatusModal()">CLOSE</button>
         </div>
     </div>
 
@@ -162,7 +241,7 @@
         <button type="button" class="btn-set-base" onclick="openBaseModal()">🏢 CONFIGURE BASE LOCATION</button>
         <div class="input-group">
             <input type="text" id="mi-start" class="req" placeholder="Start Location (Home Base) *">
-            <button type="button" class="btn-fill" onclick="fillHomeBase()">⬇️</button>
+            <button type="button" class="btn-fill" onclick="fillHomeBase()">🏢</button>
         </div>
         <div id="stops-container">
             <div class="stop-row"><input type="text" class="stop-input req" placeholder="Stop 1 *"></div>
@@ -174,7 +253,7 @@
         <datalist id="reason-list"></datalist>
         
         <textarea id="mi-notes" placeholder="Mileage Notes (Optional)..."></textarea>
-        <button class="submit" style="background:#e67e22;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
+        <button class="submit" style="background:#e67e22; box-shadow: 0 5px 0 #d35400;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
     </div>
 
     <div id="form-reports" class="hidden">
@@ -185,8 +264,8 @@
             <input type="date" id="rep-end">
             
             <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="btn-report-gen" style="background:#8e44ad;" onclick="generateReport('mileage')">MILEAGE REPORT</button>
-                <button class="btn-report-gen" style="background:#2980b9;" onclick="generateReport('expense')">EXPENSE REPORT</button>
+                <button class="btn-report-gen" style="background:#8e44ad; box-shadow: 0 4px 0 #6c3483;" onclick="generateReport('mileage')">MILEAGE REPORT</button>
+                <button class="btn-report-gen" style="background:#2980b9; box-shadow: 0 4px 0 #1a5276;" onclick="generateReport('expense')">EXPENSE REPORT</button>
             </div>
         </div>
 
@@ -223,8 +302,8 @@
         <p style="color:#666; font-size:14px;">Saved to this device for quick filling.</p>
         <input type="text" id="base-address-input" placeholder="e.g. 123 Main St, City, State">
         <div style="display:flex; gap:10px; width:100%;">
-            <button class="modal-btn" style="background:#7f8c8d;" onclick="document.getElementById('base-modal').style.display='none'">CANCEL</button>
-            <button class="modal-btn" style="background:#27ae60;" onclick="saveHomeBase()">SAVE</button>
+            <button class="modal-btn" style="background:#7f8c8d; box-shadow: 0 4px 0 #616a6b;" onclick="document.getElementById('base-modal').style.display='none'">CANCEL</button>
+            <button class="modal-btn" style="background:#27ae60; box-shadow: 0 4px 0 #1e8449;" onclick="saveHomeBase()">SAVE</button>
         </div>
     </div>
 </div>
@@ -235,9 +314,9 @@
     let lastReportData = [];
     let currentReportType = "Mileage"; 
     
-    // DEFAULTS
+    // DEFAULTS if sheet is empty
     const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"];
-    const defaultReasons = ["Site Visit", "Material Run", "Client Meeting", "Estimate", "Bank Run"];
+    const defaultReasons = ["Site Visit", "Material Run", "Client Meeting", "Estimate"];
 
     window.onload = function() {
         const now = new Date();
@@ -251,9 +330,35 @@
         document.getElementById('rep-start').value = `${y}-${m}-01`;
         document.getElementById('rep-end').value = today;
 
-        loadCategories();
-        loadReasons(); // LOAD SAVED REASONS
+        // FETCH DROPDOWN DATA FROM GOOGLE SHEETS
+        fetchDropdownData();
     };
+
+    function fetchDropdownData() {
+        callScript({ type: "get_dropdown_data" }, (resp) => {
+            if(resp.status === "success") {
+                // Populate Expense Categories
+                const catList = document.getElementById('cat-list');
+                catList.innerHTML = "";
+                let cats = resp.categories.length ? resp.categories : defaultCats;
+                cats.sort().forEach(c => {
+                    let o = document.createElement('option'); 
+                    o.value = c.toUpperCase(); // Ensure suggestions are UPPERCASE
+                    catList.appendChild(o); 
+                });
+
+                // Populate Mileage Reasons
+                const reasonList = document.getElementById('reason-list');
+                reasonList.innerHTML = "";
+                let reasons = resp.reasons.length ? resp.reasons : defaultReasons;
+                reasons.sort().forEach(r => {
+                    let o = document.createElement('option'); 
+                    o.value = r.toUpperCase(); // Ensure suggestions are UPPERCASE
+                    reasonList.appendChild(o); 
+                });
+            }
+        });
+    }
 
     function switchMode(mode) {
         document.getElementById('btn-exp').className = mode === 'expense' ? 'toggle-btn active-mode' : 'toggle-btn';
@@ -267,11 +372,14 @@
 
     // --- MILEAGE ACTIONS ---
     function previewMileage() {
-        const s = document.getElementById('mi-start').value;
-        const r = document.getElementById('mi-reason').value;
+        // FORCE UPPERCASE
+        const s = document.getElementById('mi-start').value.toUpperCase();
+        const r = document.getElementById('mi-reason').value.toUpperCase();
         const dt = document.getElementById('mi-date').value;
+        const note = document.getElementById('mi-notes').value.toUpperCase();
+        
         let stops = [];
-        document.querySelectorAll('.stop-input').forEach(i => { if(i.value.trim()) stops.push(i.value.trim()); });
+        document.querySelectorAll('.stop-input').forEach(i => { if(i.value.trim()) stops.push(i.value.trim().toUpperCase()); }); // FORCE UPPERCASE
 
         if(!s || stops.length === 0 || !r) { showStatusModal("error", "Please fill required fields."); return; }
         
@@ -279,7 +387,8 @@
         callScript({ type: "mileage_preview", startLoc: s, stops: JSON.stringify(stops) }, (resp) => {
             if(resp.status === "error") showStatusModal("error", resp.msg);
             else {
-                pendingMileageData = { date: dt, startLoc: resp.cleanStart, endLoc: resp.cleanStops.join(" ➔ "), reason: r, notes: document.getElementById('mi-notes').value };
+                // Save uppercased values to pending data
+                pendingMileageData = { date: dt, startLoc: resp.cleanStart, endLoc: resp.cleanStops.join(" ➔ "), reason: r, notes: note };
                 showConfirmation(resp.cleanStart, resp.cleanStops, resp.miles);
             }
         });
@@ -287,8 +396,6 @@
 
     function finalSaveMileage() {
         showStatusModal("loading", "Saving...");
-        // SAVE NEW REASON TO LIST
-        checkAndSaveNewReason(pendingMileageData.reason);
         
         callScript({
             type: "mileage_save",
@@ -303,24 +410,30 @@
             document.querySelectorAll('.stop-input').forEach((el, i) => { if(i === 0) el.value = ''; else el.parentElement.remove(); });
             document.getElementById('mi-reason').value = '';
             document.getElementById('mi-notes').value = '';
+            // Refresh dropdowns to include the new one if necessary
+            setTimeout(fetchDropdownData, 1000); 
         });
     }
 
     // --- EXPENSE ACTIONS ---
     function submitExpense() {
         const dt = document.getElementById('ex-date').value;
-        const it = document.getElementById('ex-item').value;
-        const cat = document.getElementById('ex-cat').value;
+        // FORCE UPPERCASE
+        const it = document.getElementById('ex-item').value.toUpperCase();
+        const cat = document.getElementById('ex-cat').value.toUpperCase();
         const cst = document.getElementById('ex-cost').value;
+        const note = document.getElementById('ex-notes').value.toUpperCase();
+
         if(!dt || !it || !cat || !cst) { showStatusModal("error", "Fill all fields."); return; }
         
-        checkAndSaveNewCategory(cat);
         showStatusModal("loading", "Saving...");
-        callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, notes: document.getElementById('ex-notes').value }, () => {
+        callScript({ type: "expense", date: dt, item: it, category: cat, cost: cst, notes: note }, () => {
             showStatusModal("success", "Expense Saved!");
             document.getElementById('ex-item').value = '';
             document.getElementById('ex-cost').value = '';
             document.getElementById('ex-notes').value = '';
+            // Refresh dropdowns to include the new category
+            setTimeout(fetchDropdownData, 1000);
         });
     }
 
@@ -478,42 +591,6 @@
     }
 
     // --- SHARED UTILS ---
-    function loadCategories() {
-        let cats = JSON.parse(localStorage.getItem('wcc_categories')) || defaultCats;
-        cats.sort();
-        const dl = document.getElementById('cat-list');
-        dl.innerHTML = "";
-        cats.forEach(c => { let o = document.createElement('option'); o.value = c; dl.appendChild(o); });
-    }
-    
-    // NEW: Load Reasons
-    function loadReasons() {
-        let reasons = JSON.parse(localStorage.getItem('wcc_reasons')) || defaultReasons;
-        reasons.sort();
-        const dl = document.getElementById('reason-list');
-        dl.innerHTML = "";
-        reasons.forEach(r => { let o = document.createElement('option'); o.value = r; dl.appendChild(o); });
-    }
-
-    function checkAndSaveNewCategory(c) {
-        let cats = JSON.parse(localStorage.getItem('wcc_categories')) || defaultCats;
-        if(!cats.some(x => x.toLowerCase() === c.toLowerCase())) {
-            cats.push(c.charAt(0).toUpperCase() + c.slice(1));
-            localStorage.setItem('wcc_categories', JSON.stringify(cats));
-            loadCategories();
-        }
-    }
-    
-    // NEW: Save Reasons
-    function checkAndSaveNewReason(r) {
-        let reasons = JSON.parse(localStorage.getItem('wcc_reasons')) || defaultReasons;
-        if(!reasons.some(x => x.toLowerCase() === r.toLowerCase())) {
-            reasons.push(r.charAt(0).toUpperCase() + r.slice(1));
-            localStorage.setItem('wcc_reasons', JSON.stringify(reasons));
-            loadReasons();
-        }
-    }
-
     function addStopInput() {
         const c = document.getElementById('stops-container');
         const d = document.createElement('div');
@@ -524,7 +601,8 @@
 
     function fillHomeBase() { const s = localStorage.getItem('wcc_home_base'); if(s) document.getElementById('mi-start').value = s; else openBaseModal(); }
     function openBaseModal() { document.getElementById('base-modal').style.display = 'flex'; if(localStorage.getItem('wcc_home_base')) document.getElementById('base-address-input').value = localStorage.getItem('wcc_home_base'); }
-    function saveHomeBase() { const a = document.getElementById('base-address-input').value; if(a) { localStorage.setItem('wcc_home_base', a); document.getElementById('base-modal').style.display='none'; if(!document.getElementById('mi-start').value) document.getElementById('mi-start').value=a; } }
+    // FORCE UPPERCASE ON SAVE
+    function saveHomeBase() { const a = document.getElementById('base-address-input').value.toUpperCase(); if(a) { localStorage.setItem('wcc_home_base', a); document.getElementById('base-modal').style.display='none'; if(!document.getElementById('mi-start').value) document.getElementById('mi-start').value=a; } }
 
     function callScript(data, callback) {
         const script = document.createElement('script');
