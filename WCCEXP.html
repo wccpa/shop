@@ -55,7 +55,11 @@
         .btn-remove-stop { background: #e74c3c; color: white; border: none; padding: 0 15px; height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         
         .btn-report-gen { background: #8e44ad; color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 5px; }
-        .btn-print-action { background: #7f8c8d; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        /* NEW ACTION GROUP FOR PRINT/CSV */
+        .action-group { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; }
+        .btn-print-action { flex: 1; background: #7f8c8d; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-csv-action { flex: 1; background: #27ae60; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
         /* MILEAGE STOPS */
         .input-group { display: flex; gap: 5px; margin-bottom: 15px; }
@@ -93,7 +97,7 @@
 
         @media print {
             body { background: white; padding: 0; margin: 0; }
-            .app-header, .toggle-box, #report-controls, .btn-refresh, .btn-print-action { display: none !important; }
+            .app-header, .toggle-box, #report-controls, .btn-refresh, .action-group { display: none !important; }
             .container { box-shadow: none; max-width: 100%; width: 100%; padding: 0; margin: 0; }
             .report-header-print { display: flex !important; align-items: center; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; justify-content: space-between; text-align: left; }
             .ph-logo { height: 60px; width: 60px; object-fit: contain; }
@@ -165,7 +169,10 @@
         </div>
         <button type="button" class="btn-add-stop" onclick="addStopInput()">+ ADD ANOTHER STOP</button>
         <span class="note">📍 Start ➔ Stop 1 ➔ Stop 2... ➔ Start</span>
-        <input type="text" id="mi-reason" class="req" placeholder="Reason (e.g. Site Visit) *">
+        
+        <input type="text" id="mi-reason" class="req" list="reason-list" placeholder="Reason (e.g. Site Visit) *">
+        <datalist id="reason-list"></datalist>
+        
         <textarea id="mi-notes" placeholder="Mileage Notes (Optional)..."></textarea>
         <button class="submit" style="background:#e67e22;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
     </div>
@@ -194,7 +201,10 @@
                 </div>
             </div>
 
-            <button class="btn-print-action" onclick="printReport()">🖨️ PRINT / SAVE PDF</button>
+            <div class="action-group">
+                <button class="btn-print-action" onclick="printReport()">🖨️ PRINT PDF</button>
+                <button class="btn-csv-action" onclick="downloadCSV()">💾 EXPORT CSV</button>
+            </div>
             
             <div class="summary-box">
                 <div class="sum-item"><div id="lbl-1">Total Trips</div><div id="sum-val-1">0</div></div>
@@ -222,8 +232,12 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
     let pendingMileageData = {};
+    let lastReportData = [];
     let currentReportType = "Mileage"; 
+    
+    // DEFAULTS
     const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"];
+    const defaultReasons = ["Site Visit", "Material Run", "Client Meeting", "Estimate", "Bank Run"];
 
     window.onload = function() {
         const now = new Date();
@@ -238,6 +252,7 @@
         document.getElementById('rep-end').value = today;
 
         loadCategories();
+        loadReasons(); // LOAD SAVED REASONS
     };
 
     function switchMode(mode) {
@@ -272,6 +287,9 @@
 
     function finalSaveMileage() {
         showStatusModal("loading", "Saving...");
+        // SAVE NEW REASON TO LIST
+        checkAndSaveNewReason(pendingMileageData.reason);
+        
         callScript({
             type: "mileage_save",
             date: pendingMileageData.date,
@@ -317,6 +335,7 @@
         callScript({ type: action, startDate: s, endDate: e }, (resp) => {
             closeStatusModal();
             if(resp.status === "success") {
+                lastReportData = resp.data;
                 if(type === 'expense') renderExpenseReport(resp.data, s, e);
                 else renderMileageReport(resp.data, s, e);
             }
@@ -400,12 +419,62 @@
         let h = now.getHours();
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
-        const tStr = `${p(h)}-${p(now.getMinutes())}-${p(now.getSeconds())}-${ampm}`;
+        const tStr = `${h}:${p(now.getMinutes())}:${p(now.getSeconds())}${ampm}`;
 
         const oldTitle = document.title;
-        document.title = `WCC - ${currentReportType} Report - ${dStr}`;
+        document.title = `Weekend Custom Creations LLC - ${currentReportType} Report - ${dStr} - ${tStr}`;
         window.print();
         setTimeout(() => { document.title = oldTitle; }, 1000);
+    }
+
+    function downloadCSV() {
+        if (!lastReportData.length) { alert("No data to export. Generate a report first."); return; }
+
+        let csv = [];
+        const now = new Date();
+        const p = (n) => n.toString().padStart(2, '0');
+        const dStr = `${p(now.getMonth()+1)}-${p(now.getDate())}-${now.getFullYear()}`;
+        let h = now.getHours();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const tStr = `${h}-${p(now.getMinutes())}-${p(now.getSeconds())}${ampm}`;
+        const finalName = `Weekend Custom Creations LLC - ${currentReportType} Report - ${dStr} - ${tStr}.csv`;
+        
+        if (currentReportType === 'Expense') {
+            csv.push(["Date", "Item", "Category", "Cost", "Notes"]);
+            lastReportData.forEach(row => {
+                let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
+                csv.push([
+                    `"${row.date}"`, 
+                    `"${row.item.replace(/"/g, '""')}"`, 
+                    `"${row.category}"`, 
+                    cVal.toFixed(2), 
+                    `"${(row.notes||"").replace(/"/g, '""')}"`
+                ]);
+            });
+        } else {
+            csv.push(["Date", "Start Location", "Route", "Miles", "Reason", "Notes"]);
+            lastReportData.forEach(row => {
+                let mVal = parseFloat(String(row.miles).replace(/[^\d.-]/g, '')) || 0;
+                csv.push([
+                    `"${row.date}"`, 
+                    `"${row.start.replace(/"/g, '""')}"`, 
+                    `"${row.route.replace(/"/g, '""')}"`, 
+                    mVal.toFixed(1), 
+                    `"${row.reason.replace(/"/g, '""')}"`, 
+                    `"${(row.notes||"").replace(/"/g, '""')}"`
+                ]);
+            });
+        }
+
+        const blob = new Blob([csv.map(e => e.join(",")).join("\n")], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", finalName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     // --- SHARED UTILS ---
@@ -416,6 +485,15 @@
         dl.innerHTML = "";
         cats.forEach(c => { let o = document.createElement('option'); o.value = c; dl.appendChild(o); });
     }
+    
+    // NEW: Load Reasons
+    function loadReasons() {
+        let reasons = JSON.parse(localStorage.getItem('wcc_reasons')) || defaultReasons;
+        reasons.sort();
+        const dl = document.getElementById('reason-list');
+        dl.innerHTML = "";
+        reasons.forEach(r => { let o = document.createElement('option'); o.value = r; dl.appendChild(o); });
+    }
 
     function checkAndSaveNewCategory(c) {
         let cats = JSON.parse(localStorage.getItem('wcc_categories')) || defaultCats;
@@ -423,6 +501,16 @@
             cats.push(c.charAt(0).toUpperCase() + c.slice(1));
             localStorage.setItem('wcc_categories', JSON.stringify(cats));
             loadCategories();
+        }
+    }
+    
+    // NEW: Save Reasons
+    function checkAndSaveNewReason(r) {
+        let reasons = JSON.parse(localStorage.getItem('wcc_reasons')) || defaultReasons;
+        if(!reasons.some(x => x.toLowerCase() === r.toLowerCase())) {
+            reasons.push(r.charAt(0).toUpperCase() + r.slice(1));
+            localStorage.setItem('wcc_reasons', JSON.stringify(reasons));
+            loadReasons();
         }
     }
 
