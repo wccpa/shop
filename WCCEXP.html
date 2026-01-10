@@ -54,7 +54,7 @@
         .btn-add-stop { background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; font-weight: bold; }
         .btn-remove-stop { background: #e74c3c; color: white; border: none; padding: 0 15px; height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; }
         
-        .btn-report-gen { background: #8e44ad; color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; margin-top: 10px; }
+        .btn-report-gen { background: #8e44ad; color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 5px; }
         .btn-print-action { background: #7f8c8d; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
         /* MILEAGE STOPS */
@@ -176,7 +176,11 @@
             <input type="date" id="rep-start">
             <label style="display:block; text-align:left; font-weight:bold; font-size:14px;">END DATE</label>
             <input type="date" id="rep-end">
-            <button class="btn-report-gen" onclick="generateReport()">GENERATE MILEAGE REPORT</button>
+            
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn-report-gen" style="background:#8e44ad;" onclick="generateReport('mileage')">MILEAGE REPORT</button>
+                <button class="btn-report-gen" style="background:#2980b9;" onclick="generateReport('expense')">EXPENSE REPORT</button>
+            </div>
         </div>
 
         <div id="report-output" class="report-section">
@@ -184,7 +188,7 @@
                 <img src="https://wccpa.github.io/shop/WCC1.jpg" class="ph-logo">
                 <div class="ph-info">
                     <div class="ph-title">Weekend Custom Creations LLC</div>
-                    <div style="font-weight:bold; color:#777;">Mileage Report</div>
+                    <div style="font-weight:bold; color:#777;" id="print-rep-type">Report</div>
                     <div class="ph-meta" id="print-meta-time"></div>
                     <div class="ph-meta" id="print-meta-range"></div>
                 </div>
@@ -193,8 +197,8 @@
             <button class="btn-print-action" onclick="printReport()">🖨️ PRINT / SAVE PDF</button>
             
             <div class="summary-box">
-                <div class="sum-item"><div>Total Trips</div><div id="sum-trips">0</div></div>
-                <div class="sum-item"><div>Total Miles</div><div id="sum-miles">0</div></div>
+                <div class="sum-item"><div id="lbl-1">Total Trips</div><div id="sum-val-1">0</div></div>
+                <div class="sum-item"><div id="lbl-2">Total Miles</div><div id="sum-val-2">0</div></div>
             </div>
 
             <div id="report-list"></div>
@@ -218,6 +222,7 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
     let pendingMileageData = {};
+    let currentReportType = "Mileage"; 
     const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"];
 
     window.onload = function() {
@@ -302,25 +307,33 @@
     }
 
     // --- REPORT GENERATION ---
-    function generateReport() {
+    function generateReport(type) {
         const s = document.getElementById('rep-start').value;
         const e = document.getElementById('rep-end').value;
-        showStatusModal("loading", "Fetching Data...");
-        callScript({ type: "get_mileage_report", startDate: s, endDate: e }, (resp) => {
+        const action = type === 'expense' ? 'get_expense_report' : 'get_mileage_report';
+        currentReportType = type === 'expense' ? "Expense" : "Mileage";
+
+        showStatusModal("loading", `Fetching ${currentReportType} Data...`);
+        callScript({ type: action, startDate: s, endDate: e }, (resp) => {
             closeStatusModal();
-            if(resp.status === "success") renderReport(resp.data, s, e);
+            if(resp.status === "success") {
+                if(type === 'expense') renderExpenseReport(resp.data, s, e);
+                else renderMileageReport(resp.data, s, e);
+            }
             else alert(resp.msg);
         });
     }
 
-    function renderReport(data, start, end) {
-        document.getElementById('report-output').style.display = 'block';
+    function renderMileageReport(data, start, end) {
+        setupReportHeader("Mileage Report", start, end);
+        document.getElementById('lbl-1').innerText = "Total Trips";
+        document.getElementById('lbl-2').innerText = "Total Miles";
+
         let totalVal = 0;
         const listDiv = document.getElementById('report-list');
         listDiv.innerHTML = data.length ? "" : "No logs found.";
 
         data.forEach(row => {
-            // STRIP TEXT TO PREVENT NaN
             let mVal = parseFloat(String(row.miles).replace(/[^\d.-]/g, '')) || 0;
             totalVal += mVal;
 
@@ -338,10 +351,43 @@
                 </div>
             </div>`;
         });
+        document.getElementById('sum-val-1').innerText = data.length;
+        document.getElementById('sum-val-2').innerText = totalVal.toFixed(1);
+    }
 
-        document.getElementById('sum-trips').innerText = data.length;
-        document.getElementById('sum-miles').innerText = totalVal.toFixed(1);
-        
+    function renderExpenseReport(data, start, end) {
+        setupReportHeader("Expense Report", start, end);
+        document.getElementById('lbl-1').innerText = "Total Items";
+        document.getElementById('lbl-2').innerText = "Total Cost";
+
+        let totalVal = 0;
+        const listDiv = document.getElementById('report-list');
+        listDiv.innerHTML = data.length ? "" : "No logs found.";
+
+        data.forEach(row => {
+            let cVal = parseFloat(String(row.cost).replace(/[^\d.-]/g, '')) || 0;
+            totalVal += cVal;
+
+            listDiv.innerHTML += `
+            <div class="report-card" style="border-left: 5px solid #2980b9;">
+                <div class="rep-header-row">
+                    <span class="rep-date">${row.date}</span>
+                    <span class="rep-miles-val" style="color:#2980b9;">$${cVal.toFixed(2)}</span>
+                </div>
+                <div class="rep-reason" style="color:#333;">${row.item}</div>
+                <div class="rep-route">
+                    <strong>CATEGORY:</strong> ${row.category} <br>
+                    ${row.notes ? `<div style="margin-top:5px; border-top:1px solid #ddd; padding-top:5px; font-style:italic; font-size:11px;">Note: ${row.notes}</div>` : ''}
+                </div>
+            </div>`;
+        });
+        document.getElementById('sum-val-1').innerText = data.length;
+        document.getElementById('sum-val-2').innerText = "$" + totalVal.toFixed(2);
+    }
+
+    function setupReportHeader(title, start, end) {
+        document.getElementById('report-output').style.display = 'block';
+        document.getElementById('print-rep-type').innerText = title;
         const now = new Date();
         document.getElementById('print-meta-time').innerText = `PULLED: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
         document.getElementById('print-meta-range').innerText = `RANGE: ${start} to ${end}`;
@@ -357,7 +403,7 @@
         const tStr = `${p(h)}-${p(now.getMinutes())}-${p(now.getSeconds())}-${ampm}`;
 
         const oldTitle = document.title;
-        document.title = `Weekend Custom Creations - Mileage Report - ${dStr} - ${tStr}`;
+        document.title = `WCC - ${currentReportType} Report - ${dStr}`;
         window.print();
         setTimeout(() => { document.title = oldTitle; }, 1000);
     }
@@ -425,8 +471,6 @@
         document.getElementById('modal-actions').style.display = "flex";
         let d = ""; st.forEach(x => d += `+to:${encodeURIComponent(x)}`); d += `+to:${encodeURIComponent(s)}`;
         const frame = document.getElementById('map-frame');
-        frame.src = `https://www.google.com/maps/embed/v1/directions?origin=${encodeURIComponent(s)}&destination=${encodeURIComponent(s)}&waypoints=${st.map(encodeURIComponent).join('|')}&key=YOUR_FREE_EMBED_KEY_OR_OLD_LINK_STYLE`;
-        // USING RELIABLE NO-KEY FALLBACK
         frame.src = `https://maps.google.com/maps?q=${encodeURIComponent(s)}&daddr=${d.substring(4)}&output=embed`;
         frame.style.display = "block";
     }
