@@ -116,7 +116,7 @@
 
 <div class="app-header">
     <div class="logo-area">
-        <img src="https://shop.weekendcustomcreations.com/WCC1.jpg" class="logo-img" alt="WCC Logo">
+        <img src="https://wccpa.github.io/shop/WCC1.jpg" class="logo-img" alt="WCC Logo">
         <span class="header-title">WCC Tracker</span>
     </div>
     <button class="btn-refresh" onclick="location.reload()" title="Refresh App">↻</button>
@@ -165,15 +165,10 @@
     <div id="form-expense">
         <input type="date" id="ex-date" class="req" title="Transaction Date">
         <input type="text" id="ex-item" class="req" placeholder="Item Name *">
-        <select id="ex-cat" class="req">
-            <option value="" disabled selected>Select Category *</option>
-            <option value="Materials">Materials</option>
-            <option value="Tools">Tools</option>
-            <option value="Fuel">Fuel</option>
-            <option value="Food">Food</option>
-            <option value="Office">Office</option>
-            <option value="Other">Other</option>
-        </select>
+        
+        <input type="text" id="ex-cat" class="req" list="cat-list" placeholder="Category (Select or Type New) *">
+        <datalist id="cat-list"></datalist>
+
         <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01">
         <textarea id="ex-notes" placeholder="Notes (Optional)..."></textarea>
         <button class="submit" onclick="submitExpense()">SAVE EXPENSE</button>
@@ -211,13 +206,51 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
     let pendingMileageData = {};
+    const defaultCats = ["Fuel", "Food", "Materials", "Office", "Other", "Tools"]; // Default list
 
-    // SET DEFAULT DATES ON LOAD
+    // SET DEFAULT DATES ON LOAD & LOAD CATEGORIES
     window.onload = function() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('ex-date').value = today;
         document.getElementById('mi-date').value = today;
+        loadCategories(); // Load the dynamic categories
     };
+
+    // --- CATEGORY LOGIC ---
+    function loadCategories() {
+        // Get from local storage or use defaults
+        let savedCats = localStorage.getItem('wcc_categories');
+        let cats = savedCats ? JSON.parse(savedCats) : defaultCats;
+        
+        // Sort Alphabetically
+        cats.sort();
+
+        // Populate Datalist
+        const datalist = document.getElementById('cat-list');
+        datalist.innerHTML = '';
+        cats.forEach(cat => {
+            let option = document.createElement('option');
+            option.value = cat;
+            datalist.appendChild(option);
+        });
+    }
+
+    function checkAndSaveNewCategory(newCat) {
+        if(!newCat) return;
+        let savedCats = localStorage.getItem('wcc_categories');
+        let cats = savedCats ? JSON.parse(savedCats) : defaultCats;
+
+        // Check if exists (case insensitive)
+        const exists = cats.some(c => c.toLowerCase() === newCat.toLowerCase());
+        
+        if(!exists) {
+            // Capitalize first letter for neatness
+            const formattedCat = newCat.charAt(0).toUpperCase() + newCat.slice(1);
+            cats.push(formattedCat);
+            localStorage.setItem('wcc_categories', JSON.stringify(cats));
+            loadCategories(); // Refresh the list
+        }
+    }
 
     function switchMode(mode) {
         document.getElementById('btn-exp').className = mode === 'expense' ? 'toggle-btn active-mode' : 'toggle-btn';
@@ -277,6 +310,9 @@
         const cost = document.getElementById('ex-cost').value;
         if(!date || !item || !cat || !cost) { showStatusModal("error", "Please fill in all required fields."); return; }
 
+        // Save Category if new
+        checkAndSaveNewCategory(cat);
+
         showStatusModal("loading", "Saving Expense...");
         callScript({
             type: "expense", date: date, item: item, category: cat, cost: cost,
@@ -285,8 +321,8 @@
             showStatusModal("success", "Expense Saved Successfully!");
             document.getElementById('ex-item').value = '';
             document.getElementById('ex-cost').value = '';
+            document.getElementById('ex-cat').value = ''; // Clear text input
             document.getElementById('ex-notes').value = '';
-            document.getElementById('ex-cat').selectedIndex = 0;
         });
     }
 
