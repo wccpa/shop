@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WCC Tracker</title>
+    <style>
+        /* BASE STYLES */
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 10px; text-align: center; color: #333; margin: 0; padding-top: 80px; /* Space for fixed header */ }
+        
+        .container { 
+            width: 100%; max-width: 600px; margin: auto; 
+            background: white; padding: 20px; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); box-sizing: border-box; 
+        }
+
+        /* FIXED HEADER (LOGO & REFRESH) */
+        .app-header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+            background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px; box-sizing: border-box; z-index: 500;
+        }
+        
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        
+        /* Logo Image Styling */
+        .logo-img { 
+            height: 50px; 
+            width: 50px; 
+            object-fit: contain;
+            border-radius: 50%; /* Optional: Makes it circular */
+        }
+
+        .header-title { font-weight: bold; font-size: 20px; color: #2c3e50; }
+
+        .btn-refresh {
+            background: #ecf0f1; border: none; color: #2c3e50;
+            width: 45px; height: 45px; border-radius: 50%;
+            font-size: 24px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn-refresh:active { transform: rotate(180deg); background: #bdc3c7; }
+
+        h2 { margin-top: 0; color: #2c3e50; font-size: 24px; margin-bottom: 20px; }
+
+        /* TOGGLES */
+        .toggle-box { display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        .toggle-btn { flex: 1; padding: 18px; border: none; cursor: pointer; font-weight: bold; background: #f1f2f6; transition: 0.3s; font-size: 16px; }
+        .active-mode { background: #2c3e50; color: white; }
+
+        /* INPUTS & GROUPS */
+        .input-group { display: flex; gap: 5px; margin-bottom: 15px; }
+        
+        input, select, textarea { 
+            width: 100%; padding: 16px; border: 2px solid #eee; 
+            border-radius: 8px; box-sizing: border-box; font-size: 16px; 
+            margin-bottom: 15px; -webkit-appearance: none; 
+        }
+        .input-group input { margin-bottom: 0; flex: 1; }
+        
+        input:focus, select:focus, textarea:focus { border-color: #3498db; outline: none; }
+        textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+        .req { border-left: 5px solid #e74c3c !important; }
+
+        /* DATE INPUT SPECIFIC */
+        input[type="date"] {
+            background-color: #f9f9f9;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        /* BUTTONS */
+        .btn-fill { background: #3498db; color: white; border: none; border-radius: 8px; width: 60px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-set-base { background: #7f8c8d; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        /* DYNAMIC STOPS */
+        .stop-row { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+        .stop-input { margin-bottom: 0 !important; flex: 1; }
+        .btn-add-stop { background: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; font-weight: bold; }
+        .btn-remove-stop { background: #e74c3c; color: white; border: none; padding: 0 15px; height: 54px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+
+        /* MAIN BUTTONS */
+        button.submit { 
+            width: 100%; padding: 18px; background: #27ae60; color: white; 
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold; 
+            cursor: pointer; transition: 0.2s; margin-top: 10px; 
+        }
+        
+        .hidden { display: none; }
+        .note { font-size: 13px; color: #777; margin-bottom: 15px; display: block; }
+
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card { background: white; width: 100%; max-width: 500px; padding: 30px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto; position: relative; }
+        
+        #modal-icon { font-size: 60px; margin-bottom: 15px; display: block; }
+        #modal-text { font-size: 22px; font-weight: bold; margin-bottom: 20px; padding: 0 10px; line-height: 1.4; }
+        #map-frame { width: 100%; height: 250px; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px; display: none; background: #eee; }
+        
+        .edit-miles-box { display:none; width: 100%; margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        #confirm-miles-input { width: 120px; text-align: center; font-weight: bold; font-size: 24px; padding: 10px; color: #2c3e50; display: inline-block; margin: 10px 0; border: 2px solid #ccc; }
+        
+        .modal-btn-group { display: flex; gap: 15px; width: 100%; display: none; }
+        .modal-btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 16px; }
+        .btn-confirm { background: #27ae60; }
+        .btn-cancel { background: #7f8c8d; }
+        .btn-error { background: #c0392b; width: 100%; margin-top: 10px; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <div class="logo-area">
+        <img src="https://shop.weekendcustomcreations.com/WCC1.jpg" class="logo-img" alt="WCC Logo">
+        <span class="header-title">WCC Tracker</span>
+    </div>
+    <button class="btn-refresh" onclick="location.reload()" title="Refresh App">↻</button>
+</div>
+
+<div class="container">
+
+    <div id="status-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div id="modal-spinner" class="spinner"></div>
+            <div id="modal-icon"></div>
+            <div id="modal-text">Processing...</div>
+            <iframe id="map-frame" frameborder="0" style="border:0" allowfullscreen></iframe>
+            <div id="edit-area" class="edit-miles-box">
+                <div style="font-size:13px; color:#555; text-transform: uppercase; font-weight:bold;">Total Miles (Round Trip)</div>
+                <input type="number" id="confirm-miles-input" step="0.1">
+                <div style="font-size:13px; color:#777; margin-top:5px;">Full Loop Calculated</div>
+            </div>
+            <div id="modal-actions" class="modal-btn-group">
+                <button class="modal-btn btn-cancel" onclick="closeStatusModal()">FIX / CANCEL</button>
+                <button class="modal-btn btn-confirm" onclick="finalSaveMileage()">CONFIRM & SAVE</button>
+            </div>
+            <button id="btn-error-close" class="modal-btn btn-error" style="display:none;" onclick="closeStatusModal()">GO BACK TO FIX</button>
+            <button id="btn-success-close" class="modal-btn btn-confirm" style="display:none; width:100%;" onclick="closeStatusModal()">OK, CLOSE</button>
+        </div>
+    </div>
+
+    <div id="base-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="font-size:50px;">🏢</div>
+            <h3 style="margin-top:10px;">Set Default Location</h3>
+            <p style="color:#666; font-size:14px; margin-top:0;">Enter your office or home address. This will be saved to this device.</p>
+            <input type="text" id="base-address-input" placeholder="e.g. 123 Main St, City, State">
+            <div style="display:flex; gap:10px; width:100%;">
+                <button class="modal-btn btn-cancel" onclick="document.getElementById('base-modal').style.display='none'">CANCEL</button>
+                <button class="modal-btn btn-confirm" onclick="saveHomeBase()">SAVE ADDRESS</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toggle-box" style="margin-top:10px;">
+        <button class="toggle-btn active-mode" onclick="switchMode('expense')" id="btn-exp">💰 Expense</button>
+        <button class="toggle-btn" onclick="switchMode('mileage')" id="btn-mil">🚗 Mileage</button>
+    </div>
+
+    <div id="form-expense">
+        <input type="date" id="ex-date" class="req" title="Transaction Date">
+        <input type="text" id="ex-item" class="req" placeholder="Item Name *">
+        <select id="ex-cat" class="req">
+            <option value="" disabled selected>Select Category *</option>
+            <option value="Materials">Materials</option>
+            <option value="Tools">Tools</option>
+            <option value="Fuel">Fuel</option>
+            <option value="Food">Food</option>
+            <option value="Office">Office</option>
+            <option value="Other">Other</option>
+        </select>
+        <input type="number" id="ex-cost" class="req" placeholder="Cost ($) *" step="0.01">
+        <textarea id="ex-notes" placeholder="Notes (Optional)..."></textarea>
+        <button class="submit" onclick="submitExpense()">SAVE EXPENSE</button>
+    </div>
+
+    <div id="form-mileage" class="hidden">
+        
+        <input type="date" id="mi-date" class="req" title="Trip Date">
+
+        <button type="button" class="btn-set-base" onclick="openBaseModal()">
+            🏢 CONFIGURE BASE LOCATION
+        </button>
+
+        <div class="input-group">
+            <input type="text" id="mi-start" class="req" placeholder="Start Location (Home Base) *">
+            <button type="button" class="btn-fill" onclick="fillHomeBase()" title="Quick Fill Saved Location">⬇️</button>
+        </div>
+        
+        <div id="stops-container">
+            <div class="stop-row">
+                <input type="text" class="stop-input req" placeholder="Stop 1 *">
+            </div>
+        </div>
+
+        <button type="button" class="btn-add-stop" onclick="addStopInput()">+ ADD ANOTHER STOP</button>
+        
+        <span class="note">📍 Calculates: Start ➔ Stop 1 ➔ Stop 2... ➔ Start</span>
+
+        <input type="text" id="mi-reason" class="req" placeholder="Reason (e.g. Site Visit) *">
+        <textarea id="mi-notes" placeholder="Mileage Notes (Optional)..."></textarea>
+        <button class="submit" style="background:#e67e22;" onclick="previewMileage()">VERIFY & PREVIEW ROUTE</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbx4vVR-eUd7x2AfauAcw4lIwYbGuWNc0KALgj0cwPZpPaNIZ9Seg7WjeSDeRLSXn9isKw/exec";
+    let pendingMileageData = {};
+
+    // SET DEFAULT DATES ON LOAD
+    window.onload = function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('ex-date').value = today;
+        document.getElementById('mi-date').value = today;
+    };
+
+    function switchMode(mode) {
+        document.getElementById('btn-exp').className = mode === 'expense' ? 'toggle-btn active-mode' : 'toggle-btn';
+        document.getElementById('btn-mil').className = mode === 'mileage' ? 'toggle-btn active-mode' : 'toggle-btn';
+        document.getElementById('form-expense').style.display = mode === 'expense' ? 'block' : 'none';
+        document.getElementById('form-mileage').style.display = mode === 'mileage' ? 'block' : 'none';
+    }
+
+    // --- HOME BASE LOGIC ---
+    function openBaseModal() {
+        const saved = localStorage.getItem('wcc_home_base');
+        if(saved) document.getElementById('base-address-input').value = saved;
+        document.getElementById('base-modal').style.display = 'flex';
+    }
+
+    function saveHomeBase() {
+        const addr = document.getElementById('base-address-input').value;
+        if(addr) {
+            localStorage.setItem('wcc_home_base', addr);
+            document.getElementById('base-modal').style.display = 'none';
+            if(document.getElementById('mi-start').value === '') {
+                document.getElementById('mi-start').value = addr;
+            }
+        } else {
+            alert("Please enter an address.");
+        }
+    }
+
+    function fillHomeBase() {
+        const saved = localStorage.getItem('wcc_home_base');
+        if(saved) {
+            document.getElementById('mi-start').value = saved;
+        } else {
+            alert("No base location saved yet. Click the 🏢 button to set one.");
+            openBaseModal();
+        }
+    }
+
+    // --- DYNAMIC STOPS ---
+    function addStopInput() {
+        const container = document.getElementById('stops-container');
+        const count = container.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'stop-row';
+        div.innerHTML = `
+            <input type="text" class="stop-input req" placeholder="Stop ${count} *">
+            <button class="btn-remove-stop" onclick="this.parentElement.remove()">-</button>
+        `;
+        container.appendChild(div);
+    }
+
+    // --- SUBMISSION LOGIC ---
+    function submitExpense() {
+        const date = document.getElementById('ex-date').value;
+        const item = document.getElementById('ex-item').value;
+        const cat = document.getElementById('ex-cat').value;
+        const cost = document.getElementById('ex-cost').value;
+        if(!date || !item || !cat || !cost) { showStatusModal("error", "Please fill in all required fields."); return; }
+
+        showStatusModal("loading", "Saving Expense...");
+        callScript({
+            type: "expense", date: date, item: item, category: cat, cost: cost,
+            notes: document.getElementById('ex-notes').value
+        }, () => {
+            showStatusModal("success", "Expense Saved Successfully!");
+            document.getElementById('ex-item').value = '';
+            document.getElementById('ex-cost').value = '';
+            document.getElementById('ex-notes').value = '';
+            document.getElementById('ex-cat').selectedIndex = 0;
+        });
+    }
+
+    function previewMileage() {
+        const start = document.getElementById('mi-start').value;
+        const reason = document.getElementById('mi-reason').value;
+        const notes = document.getElementById('mi-notes').value;
+        const date = document.getElementById('mi-date').value;
+        
+        // Collect Stops
+        const stopInputs = document.querySelectorAll('.stop-input');
+        let stops = [];
+        stopInputs.forEach(input => { if(input.value.trim()) stops.push(input.value.trim()); });
+
+        if(!start) { showStatusModal("error", "Missing Start Location"); return; }
+        if(stops.length === 0) { showStatusModal("error", "Please enter at least one stop."); return; }
+        if(!reason) { showStatusModal("error", "Missing Reason"); return; }
+
+        showStatusModal("loading", "Calculating Loop Route...");
+
+        callScript({
+            type: "mileage_preview",
+            startLoc: start,
+            stops: JSON.stringify(stops)
+        }, (resp) => {
+            if(resp.status === "error") {
+                showStatusModal("error", resp.msg);
+            } else {
+                pendingMileageData = {
+                    date: date,
+                    startLoc: resp.cleanStart,
+                    endLoc: resp.cleanStops.join(" ➔ "), 
+                    reason: reason,
+                    notes: notes
+                };
+                showConfirmation(resp.cleanStart, resp.cleanStops, resp.miles);
+            }
+        });
+    }
+
+    function finalSaveMileage() {
+        const finalMiles = document.getElementById('confirm-miles-input').value;
+        showStatusModal("loading", "Saving to Log...");
+        callScript({
+            type: "mileage_save",
+            date: pendingMileageData.date,
+            startLoc: pendingMileageData.startLoc,
+            endLoc: pendingMileageData.endLoc,
+            miles: finalMiles,
+            reason: pendingMileageData.reason,
+            notes: pendingMileageData.notes
+        }, (resp) => {
+            showStatusModal("success", resp.msg);
+            document.querySelectorAll('.stop-input').forEach((el, index) => {
+                if(index === 0) el.value = ''; else el.parentElement.remove();
+            });
+            document.getElementById('mi-reason').value = '';
+            document.getElementById('mi-notes').value = '';
+        });
+    }
+
+    function callScript(data, callback) {
+        const script = document.createElement('script');
+        const cbName = 'cb' + Date.now();
+        let params = `callback=${cbName}`;
+        for(let key in data) { params += `&${key}=${encodeURIComponent(data[key])}`; }
+        window[cbName] = function(resp) { callback(resp); delete window[cbName]; script.remove(); };
+        script.src = `${API_URL}?${params}`;
+        document.body.appendChild(script);
+    }
+
+    // UI Helpers
+    const modal = document.getElementById('status-modal');
+    const mSpinner = document.getElementById('modal-spinner');
+    const mIcon = document.getElementById('modal-icon');
+    const mText = document.getElementById('modal-text');
+    const mapFrame = document.getElementById('map-frame');
+    const editArea = document.getElementById('edit-area');
+    const mActions = document.getElementById('modal-actions');
+    const btnError = document.getElementById('btn-error-close');
+    const btnSuccess = document.getElementById('btn-success-close');
+
+    function showStatusModal(state, msg) {
+        modal.style.display = "flex";
+        mSpinner.style.display = "none"; mIcon.innerText = "";
+        mapFrame.style.display = "none"; editArea.style.display = "none";
+        mActions.style.display = "none"; btnError.style.display = "none"; btnSuccess.style.display = "none";
+
+        if(state === "loading") { mSpinner.style.display = "block"; mText.innerText = msg; mText.style.color = "#2980b9"; }
+        else if (state === "error") { mIcon.innerText = "⚠️"; mText.innerText = msg; mText.style.color = "#c0392b"; btnError.style.display = "block"; }
+        else if (state === "success") { mIcon.innerText = "✅"; mText.innerText = msg; mText.style.color = "#27ae60"; btnSuccess.style.display = "block"; }
+    }
+
+    function showConfirmation(start, stops, miles) {
+        mSpinner.style.display = "none";
+        mText.innerText = "Confirm Loop Route";
+        mText.style.color = "#333";
+        document.getElementById('confirm-miles-input').value = miles;
+        editArea.style.display = "block";
+        
+        // Build Map URL for Loop
+        let mapUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(start)}`;
+        let destString = "";
+        stops.forEach(stop => destString += `+to:${encodeURIComponent(stop)}`);
+        destString += `+to:${encodeURIComponent(start)}`; 
+        
+        mapFrame.src = mapUrl + "&daddr=" + destString.substring(4) + "&output=embed";
+        mapFrame.style.display = "block";
+        mActions.style.display = "flex";
+    }
+
+    function closeStatusModal() { modal.style.display = "none"; mapFrame.src = ""; }
+</script>
+</body>
+</html>
