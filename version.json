@@ -1,1 +1,4 @@
-version
+{
+  "version": "1.0",
+  "notes": "Fixed printing issues and added version checker."
+}
