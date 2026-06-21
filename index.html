@@ -23,13 +23,11 @@
         .shadow-top { box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06); }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
-        /* Hidden iframe for form submission */
         #hidden_iframe { display: none; }
     </style>
 </head>
 <body class="bg-gray-200 text-gray-800 font-sans">
     <div id="root"></div>
-
     <iframe name="hidden_iframe" id="hidden_iframe"></iframe>
 
     <script type="module">
@@ -105,6 +103,38 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
+        // --- NEW ERROR BOUNDARY COMPONENT ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+            componentDidCatch(error, errorInfo) {
+                console.error("React Crashed:", error, errorInfo);
+                this.setState({ errorInfo });
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen flex items-center justify-center bg-gray-200 p-4">
+                            <div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-red-600 max-w-2xl w-full">
+                                <h1 className="text-2xl font-bold text-red-600 mb-4">Storefront Crashed</h1>
+                                <p className="text-gray-700 mb-4">The screen went white because of a code or data error. Here is the exact issue:</p>
+                                <div className="bg-red-50 p-4 rounded text-sm text-red-900 font-mono overflow-x-auto whitespace-pre-wrap border border-red-200">
+                                    <p className="font-bold border-b border-red-200 pb-2 mb-2">{this.state.error && this.state.error.toString()}</p>
+                                    {this.state.errorInfo && this.state.errorInfo.componentStack}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         const getZipState = (zip) => {
             if (!zip || zip.length < 3) return null;
             const prefix = parseInt(zip.substring(0, 3), 10);
@@ -143,48 +173,20 @@
             currencySymbol: "$",
             paypalEmail: "bryan.wedekind@gmail.com", 
             paypalCurrency: "USD",
-            
-            // --- GOOGLE FORM CONFIGURATION (AUTO FILLED) ---
             googleFormActionUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdA2pDdwDZ027zsxaBiiUACqpNoauszbG3iftFCRGkbOr24KA/formResponse", 
-            
-            // IDS EXTRACTED FROM YOUR LINK:
-            formIds: {
-                item: "entry.1262435633",     // Item Name
-                link: "entry.481835721",      // Link to Item
-                question: "entry.241167129",  // Question
-                method: "entry.1691350778",   // How would you like to be contacted
-                email: "entry.1948375757",    // Your Contact Email
-                phone: "entry.1442189936"     // Your Phone Contact
-            },
-            
-            shipping: {
-                enabled: true,
-                originZip: "17820", 
-                boxBaseRate: 8.00,        
-                envelopeBaseRate: 4.00, 
-                ratePerLb: 2.00,             
-                unitLabel: "lb",
-                additionalItemFee: 1.00, 
-                freeShippingThreshold: 0, 
-                restriction: "We only ship to the lower 48 states.",
-                zoneSurchargeMultiplier: 0.50 
-            },
+            formIds: { item: "entry.1262435633", link: "entry.481835721", question: "entry.241167129", method: "entry.1691350778", email: "entry.1948375757", phone: "entry.1442189936" },
+            shipping: { enabled: true, originZip: "17820", boxBaseRate: 8.00, envelopeBaseRate: 4.00, ratePerLb: 2.00, unitLabel: "lb", additionalItemFee: 1.00, freeShippingThreshold: 0, restriction: "We only ship to the lower 48 states.", zoneSurchargeMultiplier: 0.50 },
             reservationTime: 30 * 60 * 1000 
         };
 
-        // --- NEW CONTACT FORM COMPONENT ---
         const ContactModal = ({ product, onClose, CONFIG }) => {
-            const [step, setStep] = useState('form'); // form, success
+            const [step, setStep] = useState('form'); 
             const [method, setMethod] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
             
             const handleSubmit = () => {
                 setIsSubmitting(true);
-                // The form actually submits via the HTML action to the hidden iframe. 
-                setTimeout(() => {
-                    setStep('success');
-                    setIsSubmitting(false);
-                }, 1000);
+                setTimeout(() => { setStep('success'); setIsSubmitting(false); }, 1000);
             };
 
             if (step === 'success') {
@@ -192,9 +194,7 @@
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}></div>
                         <div className="bg-white rounded-2xl p-8 max-w-sm w-full relative z-10 text-center shadow-2xl animate-fade-in">
-                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Icons.Check size={32} />
-                            </div>
+                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Check size={32} /></div>
                             <h3 className="text-xl font-bold mb-2">Message Sent!</h3>
                             <p className="text-gray-600 mb-6">We have received your question about <b>{product.title}</b> and will be in touch shortly.</p>
                             <button onClick={onClose} className="w-full py-3 bg-[#0b5394] text-white rounded-xl font-bold hover:bg-blue-700 transition-colors">Close</button>
@@ -211,67 +211,29 @@
                             <h3 className="font-bold text-lg text-[#0b5394]">Ask about: {product.title}</h3>
                             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full"><Icons.X size={20} /></button>
                         </div>
-                        
                         <div className="p-6 overflow-y-auto">
-                            <form 
-                                action={CONFIG.googleFormActionUrl} 
-                                method="POST" 
-                                target="hidden_iframe"
-                                onSubmit={handleSubmit}
-                                className="flex flex-col gap-4"
-                            >
-                                {/* AUTOMATIC HIDDEN FIELDS */}
+                            <form action={CONFIG.googleFormActionUrl} method="POST" target="hidden_iframe" onSubmit={handleSubmit} className="flex flex-col gap-4">
                                 <input type="hidden" name={CONFIG.formIds.item} value={product.title} />
                                 <input type="hidden" name={CONFIG.formIds.link} value={window.location.href} />
-
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1">Your Question</label>
-                                    <textarea 
-                                        name={CONFIG.formIds.question} 
-                                        required 
-                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0b5394] focus:border-transparent min-h-[100px]"
-                                        placeholder="What would you like to know about this item?"
-                                    ></textarea>
+                                    <textarea name={CONFIG.formIds.question} required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0b5394] focus:border-transparent min-h-[100px]" placeholder="What would you like to know about this item?"></textarea>
                                 </div>
-
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1">Best way to contact you?</label>
-                                    <select 
-                                        name={CONFIG.formIds.method} 
-                                        required 
-                                        className="w-full p-3 border border-gray-300 rounded-lg bg-white"
-                                        onChange={(e) => setMethod(e.target.value)}
-                                        defaultValue=""
-                                    >
+                                    <select name={CONFIG.formIds.method} required className="w-full p-3 border border-gray-300 rounded-lg bg-white" onChange={(e) => setMethod(e.target.value)} defaultValue="">
                                         <option value="" disabled>Select an option...</option>
-                                        <option value="EMAIL">Email</option>
-                                        <option value="PHONE">Phone Call</option>
-                                        <option value="TEXT">Text Message</option>
+                                        <option value="EMAIL">Email</option><option value="PHONE">Phone Call</option><option value="TEXT">Text Message</option>
                                     </select>
                                 </div>
-
                                 {method === 'EMAIL' && (
-                                    <div className="animate-fade-in">
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Your Email Address</label>
-                                        <input type="email" name={CONFIG.formIds.email} required placeholder="name@example.com" className="w-full p-3 border border-gray-300 rounded-lg" />
-                                    </div>
+                                    <div className="animate-fade-in"><label className="block text-sm font-bold text-gray-700 mb-1">Your Email Address</label><input type="email" name={CONFIG.formIds.email} required placeholder="name@example.com" className="w-full p-3 border border-gray-300 rounded-lg" /></div>
                                 )}
-
                                 {(method === 'PHONE' || method === 'TEXT') && (
-                                    <div className="animate-fade-in">
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Your Phone Number</label>
-                                        <input type="tel" name={CONFIG.formIds.phone} required placeholder="(555) 555-5555" className="w-full p-3 border border-gray-300 rounded-lg" />
-                                    </div>
+                                    <div className="animate-fade-in"><label className="block text-sm font-bold text-gray-700 mb-1">Your Phone Number</label><input type="tel" name={CONFIG.formIds.phone} required placeholder="(555) 555-5555" className="w-full p-3 border border-gray-300 rounded-lg" /></div>
                                 )}
-
                                 <div className="mt-2">
-                                    <button 
-                                        type="submit" 
-                                        disabled={isSubmitting}
-                                        className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all ${isSubmitting ? 'bg-gray-400' : 'bg-[#0b5394] hover:bg-blue-700 active:scale-95'}`}
-                                    >
-                                        {isSubmitting ? 'Sending...' : 'Send Message'}
-                                    </button>
+                                    <button type="submit" disabled={isSubmitting} className={`w-full py-3 rounded-xl font-bold text-white shadow-md transition-all ${isSubmitting ? 'bg-gray-400' : 'bg-[#0b5394] hover:bg-blue-700 active:scale-95'}`}>{isSubmitting ? 'Sending...' : 'Send Message'}</button>
                                 </div>
                             </form>
                         </div>
@@ -308,10 +270,12 @@
             };
             
             const btnText = isOutOfStock ? "Sold" : (hasSizes || hasCustomFields ? "Options" : "Add");
+            
+            // MATH SAFEGUARD
+            const safePrice = Number(product.price || 0).toFixed(2);
 
             return (
                 <div className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border flex flex-col relative group ${isSale ? 'border-transparent ring-2 ring-red-500 sale-glow' : 'border-gray-200'}`} onClick={() => !isOutOfStock && handleProductClick(product)}>
-                    
                     <div className="absolute top-2 left-2 z-20 flex flex-col gap-1 items-start pointer-events-none">
                         {isSale && !isEbay && <div className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 animate-pulse mb-1"><Icons.Tag size={10} /> SALE</div>}
                         {isFreeShippingItem && <div className="bg-green-700 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1 mb-1"><Icons.Truck size={10} /> FREE SHIPPING</div>}
@@ -330,19 +294,15 @@
                             <p className="text-[10px] font-semibold text-gray-500 mb-0.5 uppercase tracking-wide truncate">{product.category}</p>
                             <h3 className="font-bold text-sm leading-tight mb-1 hover:text-blue-600 transition-colors line-clamp-2 h-11">{product.title}</h3>
                         </div>
-                        
                         <div className="mt-2 pt-2 border-t border-gray-100">
                             <div className="flex items-center justify-between mb-2">
                                 <div className={`flex items-baseline ${isSale ? 'text-red-600' : 'text-gray-900'}`}>
                                     {hasSizes && <span className="text-[10px] font-semibold text-gray-500 mr-1 uppercase">Starting at</span>}
-                                    <span className="text-base md:text-lg font-bold">{CONFIG.currencySymbol}{product.price.toFixed(2)}</span>
+                                    <span className="text-base md:text-lg font-bold">{CONFIG.currencySymbol}{safePrice}</span>
                                 </div>
                             </div>
-
                             {product.ebayLink ? (
-                                <a href={product.ebayLink} target="_blank" rel="noopener noreferrer" className="block w-full text-center px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-blue-600 hover:bg-blue-700 text-white">
-                                    eBay <Icons.External size={10} className="inline"/>
-                                </a>
+                                <a href={product.ebayLink} target="_blank" rel="noopener noreferrer" className="block w-full text-center px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-blue-600 hover:bg-blue-700 text-white">eBay <Icons.External size={10} className="inline"/></a>
                             ) : (
                                 <div className="flex flex-col gap-2">
                                     {product.unlimitedStock && !hasSizes && !hasCustomFields && (
@@ -352,12 +312,7 @@
                                             <button onClick={(e) => { e.stopPropagation(); setQty(q => q + 1); }} className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-white rounded transition-colors"><Icons.Plus size={12}/></button>
                                         </div>
                                     )}
-
-                                    <button 
-                                        onClick={handleAddToCart}
-                                        disabled={isOutOfStock}
-                                        className={`w-full px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1 ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : (hasSizes || hasCustomFields ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : (isSale ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-[#0b5394] hover:bg-blue-700 text-white'))}`}
-                                    >
+                                    <button onClick={handleAddToCart} disabled={isOutOfStock} className={`w-full px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1 ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : (hasSizes || hasCustomFields ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : (isSale ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-[#0b5394] hover:bg-blue-700 text-white'))}`}>
                                         {isOutOfStock ? "Sold" : (
                                             <React.Fragment>
                                                 {!hasSizes && !hasCustomFields && <Icons.Cart size={14} className="mr-0.5"/>}
@@ -388,11 +343,7 @@
             const [shippingZip, setShippingZip] = useState("");
             const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
             const [customFieldValues, setCustomFieldValues] = useState({});
-            
-            // NEW STATE FOR CONTACT MODAL
             const [showContactModal, setShowContactModal] = useState(false);
-            
-            // Animation State
             const [flyingImage, setFlyingImage] = useState(null);
             const cartIconRef = useRef(null);
             const initialUrlCheckDone = useRef(false);
@@ -430,7 +381,6 @@
             const [modalQty, setModalQty] = useState(1);
             const [user, setUser] = useState(null);
             
-            // 1. READ URL ON LOAD (Deep Linking)
             useEffect(() => {
                 if (products.length > 0 && !initialUrlCheckDone.current) {
                     const params = new URLSearchParams(window.location.search);
@@ -443,46 +393,33 @@
                 }
             }, [products]);
 
-            // 2. WRITE TO URL (Deep Linking Sync)
             useEffect(() => {
                 if (initialUrlCheckDone.current) {
                     const newUrl = new URL(window.location);
                     if (selectedProduct) {
                         newUrl.searchParams.set('item', selectedProduct.id);
-                        // Add modal state for back button handling
                         window.history.pushState({ modal: true }, "", newUrl); 
                     } else {
                         newUrl.searchParams.delete('item');
-                        // Use pushState to clear URL without back button weirdness
                         window.history.pushState({}, "", newUrl);
                     }
                 }
-                
-                // Reset modal states
-                setCurrentImageIndex(0);
-                setSelectedSize("");
-                setModalQty(1);
-                setCustomFieldValues({}); 
-                setShowContactModal(false); // Close contact modal if product changes
+                setCurrentImageIndex(0); setSelectedSize(""); setModalQty(1); setCustomFieldValues({}); setShowContactModal(false);
             }, [selectedProduct]);
 
             useEffect(() => {
-                const onPopState = (event) => {
-                    setSelectedProduct(null);
-                };
+                const onPopState = (event) => { setSelectedProduct(null); };
                 window.addEventListener('popstate', onPopState);
                 return () => window.removeEventListener('popstate', onPopState);
             }, []);
 
             const handleProductClick = (product) => {
                 if(product.stock > 0 || product.unlimitedStock || (product.sizes && product.sizes.some(s => s.stock > 0))) {
-                    // Logic is now handled by useEffect via selectedProduct
                     setSelectedProduct(product);
                 }
             };
 
             const handleCloseModal = () => {
-                // If deep linked or history exists, back button works better
                 if (window.history.state && window.history.state.modal) {
                     window.history.back();
                 } else {
@@ -490,7 +427,6 @@
                 }
             };
 
-            // ---- FIXED USEEFFECT BLOCK WITH FIREBASE POLLING ----
             useEffect(() => {
                 if (searchQuery) setShowFilters(true);
                 
@@ -509,13 +445,11 @@
 
                 let unsubscribeAuth, unsubscribeProd, unsubscribeRes;
 
-                // 2. Poll for Firebase to finish initializing
                 const checkFirebase = setInterval(() => {
                     if (window.firebaseReady === true) {
                         clearInterval(checkFirebase);
                         setIsConfigMissing(false);
 
-                        // Firebase is ready, safely initialize Auth and DB listeners
                         const initAuth = async () => {
                             if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                                 await window.signInWithCustomToken(window.auth, __initial_auth_token);
@@ -538,13 +472,11 @@
                         });
 
                     } else if (window.firebaseReady === false) {
-                        // Explicitly failed (no config)
                         clearInterval(checkFirebase);
                         setIsConfigMissing(true);
                     }
                 }, 100);
 
-                // 3. Fallback timeout just in case the Firebase script completely fails to load
                 const fallbackTimeout = setTimeout(() => {
                     if (typeof window.firebaseReady === 'undefined') {
                         clearInterval(checkFirebase);
@@ -553,7 +485,6 @@
                     }
                 }, 5000);
 
-                // 4. Cleanup on unmount
                 return () => {
                     window.removeEventListener('scroll', handleScroll);
                     window.removeEventListener('resize', handleResize);
@@ -566,14 +497,10 @@
                     if (unsubscribeRes) unsubscribeRes();
                 };
             }, []);
-            // ---- END FIXED USEEFFECT BLOCK ----
 
             useEffect(() => {
-                if (isCartOpen || selectedProduct) {
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    document.body.style.overflow = '';
-                }
+                if (isCartOpen || selectedProduct) { document.body.style.overflow = 'hidden'; } 
+                else { document.body.style.overflow = ''; }
             }, [isCartOpen, selectedProduct]);
             
             const hasLocalPickupOnlyItem = useMemo(() => {
@@ -629,7 +556,7 @@
                     .filter(Boolean);
             }, [reservations, user, now, products]);
 
-            const cartSubtotal = myCart.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+            const cartSubtotal = myCart.reduce((s, i) => s + (Number(i.price || 0) * (i.quantity || 1)), 0);
             
             const shippingCost = useMemo(() => {
                 if (myCart.length === 0) return 0;
@@ -640,7 +567,7 @@
                 const flatRateItems = myCart.filter(i => i.flatRateShipping);
                 const standardItems = myCart.filter(i => !i.flatRateShipping);
                 let cost = 0;
-                flatRateItems.forEach(item => { cost += (parseFloat(item.flatRateAmount) || 0) * (item.quantity || 1); });
+                flatRateItems.forEach(item => { cost += (Number(item.flatRateAmount) || 0) * (item.quantity || 1); });
                 
                 if (standardItems.length > 0) {
                     const hasBox = standardItems.some(i => i.packageType === 'box' || !i.packageType);
@@ -675,9 +602,9 @@
 
                 switch (sortBy) {
                     case "default": items.sort((a, b) => { const aIsShop = !a.ebayLink; const bIsShop = !b.ebayLink; if (aIsShop !== bIsShop) return aIsShop ? -1 : 1; if (a.order !== undefined && b.order !== undefined && a.order !== b.order) return a.order - b.order; return (b.createdAt || "") - (a.createdAt || ""); }); break;
-                    case "price-asc": items.sort((a, b) => a.price - b.price); break;
-                    case "price-desc": items.sort((a, b) => b.price - a.price); break;
-                    case "name-asc": items.sort((a, b) => a.title.localeCompare(b.title)); break;
+                    case "price-asc": items.sort((a, b) => Number(a.price||0) - Number(b.price||0)); break;
+                    case "price-desc": items.sort((a, b) => Number(b.price||0) - Number(a.price||0)); break;
+                    case "name-asc": items.sort((a, b) => (a.title||"").localeCompare(b.title||"")); break;
                     case "newest": items.sort((a, b) => (b.createdAt || "") - (a.createdAt || "")); break;
                 }
                 return items;
@@ -685,55 +612,36 @@
 
             const selectedPriceInfo = useMemo(() => {
                 if (!selectedProduct) return { price: null, isDefault: true, sizeName: null };
-                let price = selectedProduct.price; let isDefault = true;
+                let price = parseFloat(selectedProduct.price) || 0; let isDefault = true;
                 if (selectedProduct.sizes && selectedProduct.sizes.length > 0 && selectedSize) {
                     const sizeObj = selectedProduct.sizes.find(s => s.name === selectedSize);
-                    price = parseFloat(sizeObj?.price) || selectedProduct.price; isDefault = false;
+                    price = parseFloat(sizeObj?.price) || price; isDefault = false;
                 }
-                return { price: price, isDefault: isDefault, sizeName: selectedSize, priceText: price !== null ? `${CONFIG.currencySymbol}${price.toFixed(2)}` : 'Select Size' };
+                return { price: price, isDefault: isDefault, sizeName: selectedSize, priceText: price !== null ? `${CONFIG.currencySymbol}${Number(price).toFixed(2)}` : 'Select Size' };
             }, [selectedProduct, selectedSize]);
 
             const addToCart = async (product, quantity = 1, customInputs = {}, openCart = false, event = null) => {
                 if (!user) return console.error("Connecting... please wait.");
                 
-                // Animation Logic
                 if (event && !openCart && cartIconRef.current) {
                     const imgEl = event.target.closest('.group')?.querySelector('img');
                     if (imgEl) {
                         const startRect = imgEl.getBoundingClientRect();
                         const endRect = cartIconRef.current.getBoundingClientRect();
                         
-                        setFlyingImage({
-                            src: imgEl.src,
-                            top: startRect.top,
-                            left: startRect.left,
-                            width: startRect.width,
-                            height: startRect.height,
-                            opacity: 1
-                        });
-
-                        setTimeout(() => {
-                            setFlyingImage({
-                                src: imgEl.src,
-                                top: endRect.top + (endRect.height / 2) - 15,
-                                left: endRect.left + (endRect.width / 2) - 15,
-                                width: 30,
-                                height: 30,
-                                opacity: 0.5
-                            });
-                        }, 20);
-
+                        setFlyingImage({ src: imgEl.src, top: startRect.top, left: startRect.left, width: startRect.width, height: startRect.height, opacity: 1 });
+                        setTimeout(() => { setFlyingImage({ src: imgEl.src, top: endRect.top + (endRect.height / 2) - 15, left: endRect.left + (endRect.width / 2) - 15, width: 30, height: 30, opacity: 0.5 }); }, 20);
                         setTimeout(() => setFlyingImage(null), 700);
                     }
                 }
 
-                let finalPrice = product.price;
+                let finalPrice = parseFloat(product.price) || 0;
                 if (product.sizes && product.sizes.length > 0) {
                     if (!selectedSize) return console.error("Please select a size.");
                     const available = getAvailability(product, selectedSize);
                     if (available < 1) return console.error("Sorry! That size is out of stock.");
                     const sizeObj = product.sizes.find(s => s.name === selectedSize);
-                    if (sizeObj && sizeObj.price) finalPrice = parseFloat(sizeObj.price);
+                    if (sizeObj && sizeObj.price) finalPrice = parseFloat(sizeObj.price) || 0;
                 } else {
                     const available = getAvailability(product);
                     if (available < 1) return console.error("Sorry! This item just went out of stock.");
@@ -744,28 +652,15 @@
                 try {
                     const resCol = window.getCollectionRef('reservations');
                     const reservationData = {
-                        productId: product.id,
-                        userId: user.uid,
-                        quantity: quantity,
-                        price: finalPrice,
-                        expiresAt: Date.now() + expirationDuration,
-                        createdAt: Date.now(),
-                        flatRateShipping: product.flatRateShipping || false,
-                        flatRateAmount: product.flatRateAmount || 0,
-                        unlimitedStock: product.unlimitedStock || false,
-                        customInputs: customInputs
+                        productId: product.id, userId: user.uid, quantity: quantity, price: finalPrice, expiresAt: Date.now() + expirationDuration,
+                        createdAt: Date.now(), flatRateShipping: product.flatRateShipping || false, flatRateAmount: product.flatRateAmount || 0,
+                        unlimitedStock: product.unlimitedStock || false, customInputs: customInputs
                     };
                     if (selectedSize) reservationData.size = selectedSize;
                     await window.addDoc(resCol, reservationData);
                     
-                    handleCloseModal(); // Always close the preview
-
-                    if (openCart) {
-                        setIsCartOpen(true); // Only open cart if requested (Buy Now)
-                    } else {
-                        setIsCartOpen(false); // Ensure cart stays closed (Add to Cart)
-                    }
-                    
+                    handleCloseModal(); 
+                    if (openCart) { setIsCartOpen(true); } else { setIsCartOpen(false); }
                 } catch (err) { console.error("Could not add to cart.", err); }
             };
 
@@ -784,44 +679,31 @@
                     await window.updateDoc(docRef, { quantity: newQty });
                 } catch (err) { console.error("Update qty failed", err); }
             };
-            
-            const zipStateInfo = useMemo(() => {
-                if (shippingZip.length < 3) return null;
-                return getZipState(shippingZip);
-            }, [shippingZip]);
 
-            const isRestrictedZip = deliveryMethod === 'shipping' && zipStateInfo && zipStateInfo.restricted;
             const handleCheckout = async (e) => {
                 if(e) e.preventDefault();
                 if (CONFIG.paypalEmail === "your-email@example.com") return console.error("Error: Configure PayPal email.");
                 if (deliveryMethod === 'shipping') {
                     if (shippingZip.length < 5) return console.error("Enter valid Zip.");
                     const stateInfo = getZipState(shippingZip);
-                    if (stateInfo && stateInfo.restricted) {
-                        console.error(`Shipping restricted for ${stateInfo.name}.`);
-                        return;
-                    }
+                    if (stateInfo && stateInfo.restricted) { console.error(`Shipping restricted for ${stateInfo.name}.`); return; }
                 }
 
-                const params = new URLSearchParams({
-                    cmd: "_cart", upload: "1", business: CONFIG.paypalEmail, currency_code: CONFIG.paypalCurrency
-                });
+                const params = new URLSearchParams({ cmd: "_cart", upload: "1", business: CONFIG.paypalEmail, currency_code: CONFIG.paypalCurrency });
                 myCart.forEach((item, idx) => {
                     const i = idx + 1;
                     let name = item.title;
                     if(item.size) name += ` (Size: ${item.size})`;
-                    
                     if(item.customInputs) {
                         const inputs = Object.entries(item.customInputs).map(([k, v]) => `${k}: ${v}`).join(', ');
                         if(inputs) name += ` [${inputs}]`;
                     }
-
                     const qty = item.quantity || 1;
                     params.append(`item_name_${i}`, name);
-                    params.append(`amount_${i}`, item.price.toFixed(2));
+                    params.append(`amount_${i}`, Number(item.price || 0).toFixed(2));
                     params.append(`quantity_${i}`, qty);
                 });
-                if (shippingCost !== null && shippingCost > 0) params.append("handling_cart", shippingCost.toFixed(2));
+                if (shippingCost !== null && shippingCost > 0) params.append("handling_cart", Number(shippingCost).toFixed(2));
                 
                 window.open(`https://www.paypal.com/cgi-bin/webscr?${params.toString()}`, '_blank');
                 setIsCartOpen(false);
@@ -839,10 +721,7 @@
                 await batch.commit();
             };
             
-            // --- NEW MODAL OPEN HANDLER ---
-            const handleSendInquiry = () => {
-                setShowContactModal(true);
-            };
+            const handleSendInquiry = () => { setShowContactModal(true); };
 
             if (isConfigMissing) return <div className="p-10 text-center font-bold text-red-600">Configuration Missing</div>;
             return (
@@ -887,19 +766,12 @@
                         {processedProducts.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
                                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-md w-full">
-                                    <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Icons.Search size={32} />
-                                    </div>
+                                    <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Search size={32} /></div>
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">No items found</h3>
                                     {(activeCategory !== "All" || filterSource !== "all") ? (
                                         <div className="mt-4 animate-fade-in">
                                             <p className="text-gray-500 text-sm mb-4">We couldn't find matches in the current filters.</p>
-                                            <button 
-                                                onClick={() => { setActiveCategory("All"); setFilterSource("all"); }}
-                                                className="w-full px-4 py-2.5 bg-[#0b5394] text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"
-                                            >
-                                                <Icons.Search size={16} /> Search in All Categories
-                                            </button>
+                                            <button onClick={() => { setActiveCategory("All"); setFilterSource("all"); }} className="w-full px-4 py-2.5 bg-[#0b5394] text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"><Icons.Search size={16} /> Search in All Categories</button>
                                         </div>
                                     ) : (
                                         <p className="text-gray-500 text-sm">Try checking your spelling or using different keywords.</p>
@@ -913,7 +785,6 @@
                         )}
                     </main>
 
-                    {/* NEW CONTACT MODAL COMPONENT RENDERED HERE */}
                     {showContactModal && selectedProduct && (
                         <ContactModal product={selectedProduct} onClose={() => setShowContactModal(false)} CONFIG={CONFIG} />
                     )}
@@ -944,9 +815,7 @@
                                                         {item.customInputs && (
                                                             <div className="mt-1 flex flex-col gap-0.5">
                                                                 {Object.entries(item.customInputs).map(([label, val], k) => (
-                                                                    <span key={k} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded w-fit">
-                                                                        <b>{label}:</b> {val}
-                                                                    </span>
+                                                                    <span key={k} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded w-fit"><b>{label}:</b> {val}</span>
                                                                 ))}
                                                             </div>
                                                         )}
@@ -957,7 +826,7 @@
                                                         </div>
                                                     </div>
                                                     <div className="flex justify-between items-end mt-2 mb-1">
-                                                        <div className="font-bold text-[#0b5394]">{CONFIG.currencySymbol}{item.price.toFixed(2)}</div>
+                                                        <div className="font-bold text-[#0b5394]">{CONFIG.currencySymbol}{Number(item.price || 0).toFixed(2)}</div>
                                                         <div className="flex items-center gap-3">
                                                             {item.unlimitedStock ? (
                                                                 <div className="flex items-center border rounded-lg h-7"><button onClick={() => updateCartQty(item, -1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Minus size={12}/></button><span className="px-2 text-xs font-bold">{item.quantity || 1}</span><button onClick={() => updateCartQty(item, 1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Plus size={12}/></button></div>
@@ -1006,8 +875,8 @@
                                             )}
 
                                             <div className="space-y-1">
-                                                <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{CONFIG.currencySymbol}{cartSubtotal.toFixed(2)}</span></div>
-                                                <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span>{deliveryMethod === 'pickup' ? 'Free (Pickup)' : (shippingCost === null ? '--' : (shippingCost === 0 ? 'FREE' : `${CONFIG.currencySymbol}${shippingCost.toFixed(2)}`))}</span></div>
+                                                <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{CONFIG.currencySymbol}{Number(cartSubtotal).toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span>{deliveryMethod === 'pickup' ? 'Free (Pickup)' : (shippingCost === null ? '--' : (shippingCost === 0 ? 'FREE' : `${CONFIG.currencySymbol}${Number(shippingCost).toFixed(2)}`))}</span></div>
                                             </div>
                                         </div>
                                     )}
@@ -1015,7 +884,7 @@
 
                                 {myCart.length > 0 && (
                                     <div className="bg-gray-50 p-4 border-t border-gray-200 flex-none z-10 shadow-top safe-area-bottom">
-                                        <div className="flex justify-between text-lg font-bold text-gray-900 mb-3"><span>Total</span><span>{CONFIG.currencySymbol}{((cartSubtotal + (deliveryMethod === 'shipping' ? (shippingCost || 0) : 0))).toFixed(2)}</span></div>
+                                        <div className="flex justify-between text-lg font-bold text-gray-900 mb-3"><span>Total</span><span>{CONFIG.currencySymbol}{Number(cartSubtotal + (deliveryMethod === 'shipping' ? (shippingCost || 0) : 0)).toFixed(2)}</span></div>
                                         
                                         <div className="flex gap-3">
                                             <button onClick={() => setIsCartOpen(false)} className="flex-1 py-4 rounded-xl font-bold text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors active:scale-95">Continue Shopping</button>
@@ -1033,18 +902,9 @@
                         <img 
                             src={flyingImage.src} 
                             style={{
-                                position: 'fixed',
-                                zIndex: 9999,
-                                top: flyingImage.top,
-                                left: flyingImage.left,
-                                width: flyingImage.width,
-                                height: flyingImage.height,
-                                objectFit: 'contain',
-                                transition: 'all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                                opacity: flyingImage.opacity,
-                                pointerEvents: 'none',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                position: 'fixed', zIndex: 9999, top: flyingImage.top, left: flyingImage.left, width: flyingImage.width, height: flyingImage.height,
+                                objectFit: 'contain', transition: 'all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1)', opacity: flyingImage.opacity, pointerEvents: 'none',
+                                borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                             }}
                         />
                     )}
@@ -1083,7 +943,6 @@
                                         <h2 className="hidden md:block text-3xl font-bold mb-4 text-gray-900">{selectedProduct.title}</h2>
                                         <p className="text-gray-600 mb-6 text-lg leading-relaxed">{selectedProduct.description}</p>
                                         
-                                        {/* PRICE DISPLAY ADDED HERE */}
                                         <div className="text-3xl font-bold text-[#0b5394] mb-6">
                                             {selectedPriceInfo.priceText}
                                         </div>
@@ -1178,7 +1037,6 @@
                                             )}
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     )}
@@ -1187,7 +1045,9 @@
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        
+        // Wrap App in the ErrorBoundary
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
 </body>
 </html>
