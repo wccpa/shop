@@ -241,8 +241,9 @@
                                         required 
                                         className="w-full p-3 border border-gray-300 rounded-lg bg-white"
                                         onChange={(e) => setMethod(e.target.value)}
+                                        defaultValue=""
                                     >
-                                        <option value="" disabled selected>Select an option...</option>
+                                        <option value="" disabled>Select an option...</option>
                                         <option value="EMAIL">Email</option>
                                         <option value="PHONE">Phone Call</option>
                                         <option value="TEXT">Text Message</option>
@@ -357,14 +358,14 @@
                                         disabled={isOutOfStock}
                                         className={`w-full px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center gap-1 ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : (hasSizes || hasCustomFields ? 'bg-gray-200 text-gray-600 hover:bg-gray-300' : (isSale ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-[#0b5394] hover:bg-blue-700 text-white'))}`}
                                     >
-                                            {isOutOfStock ? "Sold" : (
-                                                <React.Fragment>
-                                                    {!hasSizes && !hasCustomFields && <Icons.Cart size={14} className="mr-0.5"/>}
-                                                    {(!hasSizes && !hasCustomFields) && <Icons.Plus size={14} />} 
-                                                    {btnText} 
-                                                    {product.unlimitedStock && !hasSizes && !hasCustomFields && qty > 1 ? ` (${qty})` : ''}
-                                                </React.Fragment>
-                                            )}
+                                        {isOutOfStock ? "Sold" : (
+                                            <React.Fragment>
+                                                {!hasSizes && !hasCustomFields && <Icons.Cart size={14} className="mr-0.5"/>}
+                                                {(!hasSizes && !hasCustomFields) && <Icons.Plus size={14} />} 
+                                                {btnText} 
+                                                {product.unlimitedStock && !hasSizes && !hasCustomFields && qty > 1 ? ` (${qty})` : ''}
+                                            </React.Fragment>
+                                        )}
                                     </button>
                                 </div>
                             )}
@@ -488,8 +489,11 @@
                     setSelectedProduct(null); 
                 }
             };
+
+            // ---- FIXED USEEFFECT BLOCK WITH FIREBASE POLLING ----
             useEffect(() => {
                 if (searchQuery) setShowFilters(true);
+                
                 const handleScroll = () => {
                     const currentScrollY = window.scrollY;
                     if (currentScrollY < 100 || currentScrollY < lastScrollY.current) setShowFilters(true);
@@ -497,36 +501,72 @@
                     lastScrollY.current = currentScrollY;
                 };
                 window.addEventListener('scroll', handleScroll, { passive: true });
-                if (!window.firebaseReady) { setIsConfigMissing(true); return; }
-                const initAuth = async () => {
-                    if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await window.signInWithCustomToken(window.auth, __initial_auth_token);
-                    } else {
-                        await window.signInAnonymously(window.auth);
-                    }
-                };
-                initAuth();
-                const unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
-                const prodCol = window.getCollectionRef('products');
-                const resCol = window.getCollectionRef('reservations');
-                const unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
-                    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                }, (error) => console.error(error));
-                const unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
-                    setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                });
+                
                 const timerInterval = setInterval(() => setNow(Date.now()), 1000);
                 const handleResize = () => setViewportHeight(window.innerHeight);
                 window.addEventListener('resize', handleResize);
                 window.addEventListener('orientationchange', handleResize);
 
+                let unsubscribeAuth, unsubscribeProd, unsubscribeRes;
+
+                // 2. Poll for Firebase to finish initializing
+                const checkFirebase = setInterval(() => {
+                    if (window.firebaseReady === true) {
+                        clearInterval(checkFirebase);
+                        setIsConfigMissing(false);
+
+                        // Firebase is ready, safely initialize Auth and DB listeners
+                        const initAuth = async () => {
+                            if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                await window.signInWithCustomToken(window.auth, __initial_auth_token);
+                            } else {
+                                await window.signInAnonymously(window.auth);
+                            }
+                        };
+                        initAuth();
+
+                        unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
+                        const prodCol = window.getCollectionRef('products');
+                        const resCol = window.getCollectionRef('reservations');
+
+                        unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
+                            setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        }, (error) => console.error(error));
+
+                        unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
+                            setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                        });
+
+                    } else if (window.firebaseReady === false) {
+                        // Explicitly failed (no config)
+                        clearInterval(checkFirebase);
+                        setIsConfigMissing(true);
+                    }
+                }, 100);
+
+                // 3. Fallback timeout just in case the Firebase script completely fails to load
+                const fallbackTimeout = setTimeout(() => {
+                    if (typeof window.firebaseReady === 'undefined') {
+                        clearInterval(checkFirebase);
+                        setIsConfigMissing(true);
+                        console.error("Firebase initialization timed out.");
+                    }
+                }, 5000);
+
+                // 4. Cleanup on unmount
                 return () => {
                     window.removeEventListener('scroll', handleScroll);
                     window.removeEventListener('resize', handleResize);
                     window.removeEventListener('orientationchange', handleResize);
-                    unsubscribeAuth(); unsubscribeProd(); unsubscribeRes(); clearInterval(timerInterval);
+                    clearInterval(timerInterval);
+                    clearInterval(checkFirebase);
+                    clearTimeout(fallbackTimeout);
+                    if (unsubscribeAuth) unsubscribeAuth();
+                    if (unsubscribeProd) unsubscribeProd();
+                    if (unsubscribeRes) unsubscribeRes();
                 };
             }, []);
+            // ---- END FIXED USEEFFECT BLOCK ----
 
             useEffect(() => {
                 if (isCartOpen || selectedProduct) {
@@ -805,7 +845,7 @@
             };
 
             if (isConfigMissing) return <div className="p-10 text-center font-bold text-red-600">Configuration Missing</div>;
-return (
+            return (
                 <div className="min-h-screen pb-20">
                     <header className="bg-white shadow-sm sticky top-0 z-40">
                         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
