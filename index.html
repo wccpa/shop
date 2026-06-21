@@ -186,7 +186,18 @@
             paypalCurrency: "USD",
             googleFormActionUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdA2pDdwDZ027zsxaBiiUACqpNoauszbG3iftFCRGkbOr24KA/formResponse", 
             formIds: { item: "entry.1262435633", link: "entry.481835721", question: "entry.241167129", method: "entry.1691350778", email: "entry.1948375757", phone: "entry.1442189936" },
-            shipping: { enabled: true, originZip: "17820", boxBaseRate: 8.00, envelopeBaseRate: 4.00, ratePerLb: 2.00, unitLabel: "lb", additionalItemFee: 1.00, freeShippingThreshold: 0, restriction: "We only ship to the lower 48 states.", zoneSurchargeMultiplier: 0.50 },
+            shipping: { 
+                enabled: true, 
+                originZip: "17820", 
+                boxBaseRate: 9.50, 
+                envelopeBaseRate: 5.00, 
+                ratePerLb: 2.75, 
+                unitLabel: "lb", 
+                additionalItemFee: 1.50, 
+                freeShippingThreshold: 0, 
+                restriction: "We only ship to the lower 48 states.", 
+                zoneSurchargeMultiplier: 0.75 
+            },
             reservationTime: 30 * 60 * 1000 
         };
 
@@ -264,10 +275,10 @@
         const ProductCard = ({ product, isSale, isOutOfStock, available, safeImages, handleProductClick, addToCart, CONFIG, Icons }) => {
             const [qty, setQty] = useState(1);
             const isEbay = product.ebayLink && product.ebayLink.length > 0;
-            const isLocalPickupOnly = product.localPickupOnly === true;
-            const isLocalPickupAvailable = product.localPickupAvailable === true;
+            const isLocalPickupOnly = product.localPickupOnly === true || product.localPickupOnly === 'true';
+            const isLocalPickupAvailable = product.localPickupAvailable === true || product.localPickupAvailable === 'true';
             const hasSizes = product.sizes && product.sizes.length > 0;
-            const isFreeShippingItem = product.flatRateShipping && parseFloat(product.flatRateAmount) === 0 && !isEbay;
+            const isFreeShippingItem = (product.flatRateShipping === true || product.flatRateShipping === 'true') && parseFloat(product.flatRateAmount) === 0 && !isEbay;
             const hasCustomFields = product.customFields && product.customFields.length > 0;
 
             const handleAddToCart = (e) => {
@@ -519,7 +530,7 @@
                     .filter(r => r.userId === user.uid && r.expiresAt > now)
                     .map(r => products.find(p => p.id === r.productId) ? { ...products.find(p => p.id === r.productId), ...r } : null)
                     .filter(Boolean);
-                return cartItems.some(p => p.localPickupOnly);
+                return cartItems.some(p => p.localPickupOnly === true || p.localPickupOnly === 'true');
             }, [reservations, products, user, now]);
             
             useEffect(() => {
@@ -574,9 +585,10 @@
                 if (!shippingZip || shippingZip.length < 5) return null;
                 if (CONFIG.shipping.freeShippingThreshold > 0 && cartSubtotal >= CONFIG.shipping.freeShippingThreshold) return 0;
                 
-                const flatRateItems = myCart.filter(i => i.flatRateShipping);
-                const standardItems = myCart.filter(i => !i.flatRateShipping);
+                const flatRateItems = myCart.filter(i => i.flatRateShipping === true || i.flatRateShipping === 'true');
+                const standardItems = myCart.filter(i => !(i.flatRateShipping === true || i.flatRateShipping === 'true'));
                 let cost = 0;
+                
                 flatRateItems.forEach(item => { cost += (Number(item.flatRateAmount) || 0) * (item.quantity || 1); });
                 
                 if (standardItems.length > 0) {
@@ -606,9 +618,9 @@
                 if (activeCategory !== "All") items = items.filter(p => p.category === activeCategory);
                 if (filterSource === "shop") items = items.filter(p => !p.ebayLink);
                 else if (filterSource === "ebay") items = items.filter(p => p.ebayLink);
-                else if (filterSource === "pickup") items = items.filter(p => p.localPickupOnly);
+                else if (filterSource === "pickup") items = items.filter(p => p.localPickupOnly === true || p.localPickupOnly === 'true');
                 else if (filterSource === "sale") items = items.filter(p => p.sale);
-                else if (filterSource === "local_pickup_available") items = items.filter(p => p.localPickupAvailable || p.localPickupOnly);
+                else if (filterSource === "local_pickup_available") items = items.filter(p => p.localPickupAvailable === true || p.localPickupAvailable === 'true' || p.localPickupOnly === true || p.localPickupOnly === 'true');
 
                 switch (sortBy) {
                     case "default": items.sort((a, b) => { const aIsShop = !a.ebayLink; const bIsShop = !b.ebayLink; if (aIsShop !== bIsShop) return aIsShop ? -1 : 1; if (a.order !== undefined && b.order !== undefined && a.order !== b.order) return a.order - b.order; return (b.createdAt || "") - (a.createdAt || ""); }); break;
@@ -663,7 +675,9 @@
                     const resCol = window.getCollectionRef('reservations');
                     const reservationData = {
                         productId: product.id, userId: user.uid, quantity: quantity, price: finalPrice, expiresAt: Date.now() + expirationDuration,
-                        createdAt: Date.now(), flatRateShipping: product.flatRateShipping || false, flatRateAmount: product.flatRateAmount || 0,
+                        createdAt: Date.now(), 
+                        flatRateShipping: product.flatRateShipping === true || product.flatRateShipping === 'true', 
+                        flatRateAmount: product.flatRateAmount || 0,
                         unlimitedStock: product.unlimitedStock || false, customInputs: customInputs
                     };
                     if (selectedSize) reservationData.size = selectedSize;
@@ -690,7 +704,6 @@
                 } catch (err) { console.error("Update qty failed", err); }
             };
 
-            // RESTORED ZIP VARIABLES HERE
             const zipStateInfo = useMemo(() => {
                 if (shippingZip.length < 3) return null;
                 return getZipState(shippingZip);
@@ -948,9 +961,9 @@
                                     <div className="w-full md:w-1/2 h-80 md:h-auto bg-gray-100 relative group min-h-[300px] flex-shrink-0">
                                         <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 items-start">
                                             {selectedProduct.sale && !selectedProduct.ebayLink && <div className="bg-red-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse"><Icons.Tag size={16} /> ON SALE</div>}
-                                            {selectedProduct.flatRateShipping && parseFloat(selectedProduct.flatRateAmount) === 0 && <div className="bg-green-700 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.Truck size={16} /> FREE SHIPPING</div>}
-                                            {selectedProduct.localPickupOnly && <div className="bg-orange-500 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP ONLY</div>}
-                                            {!selectedProduct.localPickupOnly && selectedProduct.localPickupAvailable && <div className="bg-green-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP AVAILABLE</div>}
+                                            {(selectedProduct.flatRateShipping === true || selectedProduct.flatRateShipping === 'true') && parseFloat(selectedProduct.flatRateAmount) === 0 && <div className="bg-green-700 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.Truck size={16} /> FREE SHIPPING</div>}
+                                            {(selectedProduct.localPickupOnly === true || selectedProduct.localPickupOnly === 'true') && <div className="bg-orange-500 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP ONLY</div>}
+                                            {!(selectedProduct.localPickupOnly === true || selectedProduct.localPickupOnly === 'true') && (selectedProduct.localPickupAvailable === true || selectedProduct.localPickupAvailable === 'true') && <div className="bg-green-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.MapPin size={16} /> PICKUP AVAILABLE</div>}
                                             {selectedProduct.ebayLink && <div className="bg-blue-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-lg flex items-center gap-1"><Icons.External size={16} /> eBay Listing</div>}
                                         </div>
                                         <img src={getSafeImages(selectedProduct)[currentImageIndex] || "https://via.placeholder.com/400?text=No+Image"} className="w-full h-full object-contain" />
@@ -1063,8 +1076,6 @@
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        
-        // Wrap App in the ErrorBoundary
         root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
 </body>
