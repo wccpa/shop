@@ -690,6 +690,14 @@
                 } catch (err) { console.error("Update qty failed", err); }
             };
 
+            // RESTORED ZIP VARIABLES HERE
+            const zipStateInfo = useMemo(() => {
+                if (shippingZip.length < 3) return null;
+                return getZipState(shippingZip);
+            }, [shippingZip]);
+
+            const isRestrictedZip = deliveryMethod === 'shipping' && zipStateInfo && zipStateInfo.restricted;
+
             const handleCheckout = async (e) => {
                 if(e) e.preventDefault();
                 if (CONFIG.paypalEmail === "your-email@example.com") return console.error("Error: Configure PayPal email.");
