@@ -4,10 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Weekend Custom Creations Shop</title>
+    
+    <script>
+        window.addEventListener('error', function(e) {
+            if (document.body) {
+                document.body.innerHTML += '<div style="padding:20px; background:white; color:red; position:fixed; z-index:9999; top:0; left:0; width:100%; border-bottom: 2px solid red;"><h3>Global Script Error:</h3><p>' + e.message + '</p></div>';
+            }
+        });
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <style>
         html, body { background-color: #e5e7eb; height: 100%; margin: 0; padding: 0; -webkit-overflow-scrolling: touch; }
         #root { min-height: 100%; }
@@ -32,11 +42,7 @@
 
     <iframe name="hidden_iframe" id="hidden_iframe"></iframe>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, increment, getDocs, where, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
+    <script>
         const YOUR_FIREBASE_CONFIG = {
             apiKey: "AIzaSyDIb9_YrO6HjexOeNwEiONvEHSw02dRNH8",
             authDomain: "wccshop-242bb.firebaseapp.com",
@@ -47,75 +53,87 @@
             measurementId: "G-1QD89WKEV5"
         };
 
-        let firebaseConfig;
-        let appId = 'default-shop';
+        window.firebaseConfig = null;
+        window.appId = 'default-shop';
         window.isUsingEnvConfig = false;
+        window.firebaseReady = false;
         
         try {
             if (YOUR_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
-                firebaseConfig = YOUR_FIREBASE_CONFIG;
+                window.firebaseConfig = YOUR_FIREBASE_CONFIG;
                 window.isUsingEnvConfig = false;
             } else if (typeof __firebase_config !== 'undefined') {
-                firebaseConfig = JSON.parse(__firebase_config);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                window.firebaseConfig = JSON.parse(__firebase_config);
+                window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 window.isUsingEnvConfig = true;
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error("Config Setup Error:", e); }
 
-        if (firebaseConfig) {
-            const app = initializeApp(firebaseConfig);
-            window.db = getFirestore(app);
-            window.auth = getAuth(app);
-            window.collection = collection;
-            window.addDoc = addDoc;
-            window.updateDoc = updateDoc;
-            window.deleteDoc = deleteDoc;
-            window.doc = doc;
-            window.getDoc = getDoc;
-            window.onSnapshot = onSnapshot;
-            window.signInAnonymously = signInAnonymously;
-            window.signInWithCustomToken = signInWithCustomToken;
-            window.onAuthStateChanged = onAuthStateChanged;
-            window.increment = increment;
-            window.getDocs = getDocs;
-            window.where = where;
-            window.query = query;
-            window.writeBatch = writeBatch;
-            window.appId = appId;
-            window.firebaseReady = true;
+        if (window.firebaseConfig) {
+            // Use Dynamic Imports to prevent "Cannot use import statement outside a module"
+            Promise.all([
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"),
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"),
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")
+            ]).then(function(modules) {
+                const appMod = modules[0];
+                const fsMod = modules[1];
+                const authMod = modules[2];
 
-            window.getCollectionRef = (collectionName) => {
-                if (window.isUsingEnvConfig) {
-                    return window.collection(window.db, 'artifacts', window.appId, 'public', 'data', collectionName);
-                } else {
-                    return window.collection(window.db, collectionName);
-                }
-            };
-            
-            window.getDocRef = (collectionName, docId) => {
-                 if (window.isUsingEnvConfig) {
-                    return window.doc(window.db, 'artifacts', window.appId, 'public', 'data', collectionName, docId);
-                } else {
-                    return window.doc(window.db, collectionName, docId);
-                }
-            };
-        } else { window.firebaseReady = false; }
+                const app = appMod.initializeApp(window.firebaseConfig);
+                window.db = fsMod.getFirestore(app);
+                window.auth = authMod.getAuth(app);
+                
+                window.collection = fsMod.collection;
+                window.addDoc = fsMod.addDoc;
+                window.updateDoc = fsMod.updateDoc;
+                window.deleteDoc = fsMod.deleteDoc;
+                window.doc = fsMod.doc;
+                window.getDoc = fsMod.getDoc;
+                window.onSnapshot = fsMod.onSnapshot;
+                window.signInAnonymously = authMod.signInAnonymously;
+                window.signInWithCustomToken = authMod.signInWithCustomToken;
+                window.onAuthStateChanged = authMod.onAuthStateChanged;
+                window.increment = fsMod.increment;
+                window.getDocs = fsMod.getDocs;
+                window.where = fsMod.where;
+                window.query = fsMod.query;
+                window.writeBatch = fsMod.writeBatch;
+
+                window.getCollectionRef = function(collectionName) {
+                    if (window.isUsingEnvConfig) {
+                        return window.collection(window.db, 'artifacts', window.appId, 'public', 'data', collectionName);
+                    } else {
+                        return window.collection(window.db, collectionName);
+                    }
+                };
+                window.getDocRef = function(collectionName, docId) {
+                     if (window.isUsingEnvConfig) {
+                        return window.doc(window.db, 'artifacts', window.appId, 'public', 'data', collectionName, docId);
+                    } else {
+                        return window.doc(window.db, collectionName, docId);
+                    }
+                };
+                
+                window.firebaseReady = true;
+                console.log("Firebase initialized successfully via dynamic imports.");
+            }).catch(function(error) {
+                console.error("Failed to load Firebase modules dynamically:", error);
+            });
+        }
     </script>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
-
         const getZipState = (zip) => {
             if (!zip || zip.length < 3) return null;
             const prefix = parseInt(zip.substring(0, 3), 10);
             if (isNaN(prefix)) return null;
             return { name: "USA", restricted: false }; 
         };
-
         const Icon = ({ children, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
-        
         const Icons = {
             Cart: (p) => <Icon {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></Icon>,
             X: (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>,
@@ -137,7 +155,6 @@
             Envelope: (p) => <Icon {...p}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></Icon>,
             Check: (p) => <Icon {...p}><polyline points="20 6 9 17 4 12" /></Icon>
         };
-
         const CONFIG = {
             storeName: "ONLINE STORE",
             currencySymbol: "$",
@@ -171,16 +188,14 @@
             },
             reservationTime: 30 * 60 * 1000 
         };
-
-        // --- NEW CONTACT FORM COMPONENT ---
+        
         const ContactModal = ({ product, onClose, CONFIG }) => {
-            const [step, setStep] = useState('form'); // form, success
+            const [step, setStep] = useState('form');
             const [method, setMethod] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
             
             const handleSubmit = () => {
                 setIsSubmitting(true);
-                // The form actually submits via the HTML action to the hidden iframe. 
                 setTimeout(() => {
                     setStep('success');
                     setIsSubmitting(false);
@@ -220,7 +235,6 @@
                                 onSubmit={handleSubmit}
                                 className="flex flex-col gap-4"
                             >
-                                {/* AUTOMATIC HIDDEN FIELDS */}
                                 <input type="hidden" name={CONFIG.formIds.item} value={product.title} />
                                 <input type="hidden" name={CONFIG.formIds.link} value={window.location.href} />
 
@@ -240,9 +254,10 @@
                                         name={CONFIG.formIds.method} 
                                         required 
                                         className="w-full p-3 border border-gray-300 rounded-lg bg-white"
+                                        value={method}
                                         onChange={(e) => setMethod(e.target.value)}
                                     >
-                                        <option value="" disabled selected>Select an option...</option>
+                                        <option value="" disabled>Select an option...</option>
                                         <option value="EMAIL">Email</option>
                                         <option value="PHONE">Phone Call</option>
                                         <option value="TEXT">Text Message</option>
@@ -299,9 +314,9 @@
             const handleAddToCart = (e) => {
                 if(e) e.stopPropagation();
                 if (hasSizes || hasCustomFields) {
-                    handleProductClick(product); 
+                    handleProductClick(product);
                 } else {
-                    addToCart(product, qty, {}, false, e); 
+                    addToCart(product, qty, {}, false, e);
                     setQty(1); 
                 }
             };
@@ -334,14 +349,14 @@
                             <div className="flex items-center justify-between mb-2">
                                 <div className={`flex items-baseline ${isSale ? 'text-red-600' : 'text-gray-900'}`}>
                                     {hasSizes && <span className="text-[10px] font-semibold text-gray-500 mr-1 uppercase">Starting at</span>}
-                                    <span className="text-base md:text-lg font-bold">{CONFIG.currencySymbol}{product.price.toFixed(2)}</span>
+                                    <span className="text-base md:text-lg font-bold">{CONFIG.currencySymbol}{Number(product.price || 0).toFixed(2)}</span>
                                 </div>
                             </div>
 
                             {product.ebayLink ? (
                                 <a href={product.ebayLink} target="_blank" rel="noopener noreferrer" className="block w-full text-center px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-blue-600 hover:bg-blue-700 text-white">
                                     eBay <Icons.External size={10} className="inline"/>
-                                </a>
+                                 </a>
                             ) : (
                                 <div className="flex flex-col gap-2">
                                     {product.unlimitedStock && !hasSizes && !hasCustomFields && (
@@ -383,15 +398,11 @@
             const [currentImageIndex, setCurrentImageIndex] = useState(0);
             const [sortBy, setSortBy] = useState("default");
             const [filterSource, setFilterSource] = useState("all"); 
-            const [now, setNow] = useState(Date.now()); 
+            const [now, setNow] = useState(Date.now());
             const [shippingZip, setShippingZip] = useState("");
             const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
             const [customFieldValues, setCustomFieldValues] = useState({});
-            
-            // NEW STATE FOR CONTACT MODAL
             const [showContactModal, setShowContactModal] = useState(false);
-            
-            // Animation State
             const [flyingImage, setFlyingImage] = useState(null);
             const cartIconRef = useRef(null);
             const initialUrlCheckDone = useRef(false);
@@ -429,7 +440,6 @@
             const [modalQty, setModalQty] = useState(1);
             const [user, setUser] = useState(null);
             
-            // 1. READ URL ON LOAD (Deep Linking)
             useEffect(() => {
                 if (products.length > 0 && !initialUrlCheckDone.current) {
                     const params = new URLSearchParams(window.location.search);
@@ -441,30 +451,26 @@
                     initialUrlCheckDone.current = true;
                 }
             }, [products]);
-
-            // 2. WRITE TO URL (Deep Linking Sync)
+            
             useEffect(() => {
                 if (initialUrlCheckDone.current) {
                     const newUrl = new URL(window.location);
                     if (selectedProduct) {
                         newUrl.searchParams.set('item', selectedProduct.id);
-                        // Add modal state for back button handling
                         window.history.pushState({ modal: true }, "", newUrl); 
                     } else {
                         newUrl.searchParams.delete('item');
-                        // Use pushState to clear URL without back button weirdness
                         window.history.pushState({}, "", newUrl);
                     }
                 }
                 
-                // Reset modal states
                 setCurrentImageIndex(0);
                 setSelectedSize("");
                 setModalQty(1);
                 setCustomFieldValues({}); 
-                setShowContactModal(false); // Close contact modal if product changes
+                setShowContactModal(false); 
             }, [selectedProduct]);
-
+            
             useEffect(() => {
                 const onPopState = (event) => {
                     setSelectedProduct(null);
@@ -472,22 +478,21 @@
                 window.addEventListener('popstate', onPopState);
                 return () => window.removeEventListener('popstate', onPopState);
             }, []);
-
+            
             const handleProductClick = (product) => {
                 if(product.stock > 0 || product.unlimitedStock || (product.sizes && product.sizes.some(s => s.stock > 0))) {
-                    // Logic is now handled by useEffect via selectedProduct
                     setSelectedProduct(product);
                 }
             };
-
+            
             const handleCloseModal = () => {
-                // If deep linked or history exists, back button works better
                 if (window.history.state && window.history.state.modal) {
                     window.history.back();
                 } else {
-                    setSelectedProduct(null); 
+                    setSelectedProduct(null);
                 }
             };
+            
             useEffect(() => {
                 if (searchQuery) setShowFilters(true);
                 const handleScroll = () => {
@@ -497,37 +502,58 @@
                     lastScrollY.current = currentScrollY;
                 };
                 window.addEventListener('scroll', handleScroll, { passive: true });
-                if (!window.firebaseReady) { setIsConfigMissing(true); return; }
-                const initAuth = async () => {
+                
+                let unsubscribeAuth = () => {};
+                let unsubscribeProd = () => {};
+                let unsubscribeRes = () => {};
+                let timerInterval;
+
+                // Fire this up ONLY when the module has securely bound to the window object
+                const initApp = async () => {
                     if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await window.signInWithCustomToken(window.auth, __initial_auth_token);
                     } else {
                         await window.signInAnonymously(window.auth);
                     }
+                    unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
+                    const prodCol = window.getCollectionRef('products');
+                    const resCol = window.getCollectionRef('reservations');
+                    
+                    unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
+                        setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    }, (error) => console.error(error));
+                    
+                    unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
+                        setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+                    timerInterval = setInterval(() => setNow(Date.now()), 1000);
                 };
-                initAuth();
-                const unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
-                const prodCol = window.getCollectionRef('products');
-                const resCol = window.getCollectionRef('reservations');
-                const unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
-                    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                }, (error) => console.error(error));
-                const unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
-                    setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                });
-                const timerInterval = setInterval(() => setNow(Date.now()), 1000);
+
+                // Polling to fix the Babel vs Module race condition
+                const checkFirebase = () => {
+                    if (window.firebaseReady === true) {
+                        initApp();
+                    } else if (window.firebaseReady === false && window.firebaseConfig === null) {
+                        setIsConfigMissing(true);
+                    } else {
+                        setTimeout(checkFirebase, 50); 
+                    }
+                };
+                checkFirebase();
+
                 const handleResize = () => setViewportHeight(window.innerHeight);
                 window.addEventListener('resize', handleResize);
                 window.addEventListener('orientationchange', handleResize);
-
+                
                 return () => {
                     window.removeEventListener('scroll', handleScroll);
                     window.removeEventListener('resize', handleResize);
                     window.removeEventListener('orientationchange', handleResize);
-                    unsubscribeAuth(); unsubscribeProd(); unsubscribeRes(); clearInterval(timerInterval);
+                    unsubscribeAuth(); unsubscribeProd(); unsubscribeRes(); 
+                    if(timerInterval) clearInterval(timerInterval);
                 };
             }, []);
-
+            
             useEffect(() => {
                 if (isCartOpen || selectedProduct) {
                     document.body.style.overflow = 'hidden';
@@ -548,14 +574,14 @@
             useEffect(() => {
                 if (hasLocalPickupOnlyItem) setDeliveryMethod('pickup');
             }, [hasLocalPickupOnlyItem]);
-
+            
             const getSafeImages = (p) => {
                 if (!p || !p.images) return ["https://via.placeholder.com/400?text=No+Image"];
                 if (Array.isArray(p.images)) return p.images.length > 0 ? p.images : ["https://via.placeholder.com/400?text=No+Image"];
                 if (typeof p.images === 'string') return [p.images];
                 return ["https://via.placeholder.com/400?text=Error"];
             };
-
+            
             const categories = ["All", ...new Set(products.map(p => p.category))];
             
             const getAvailability = (product, sizeName = null) => {
@@ -570,8 +596,8 @@
                         return Math.max(0, totalStock - reservedCount);
                     } else {
                         const totalStock = product.sizes.reduce((acc, s) => acc + (parseInt(s.stock)||0), 0);
-                         const activeRes = reservations.filter(r => r.productId === product.id && r.expiresAt > now);
-                         const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
+                        const activeRes = reservations.filter(r => r.productId === product.id && r.expiresAt > now);
+                        const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
                          return Math.max(0, totalStock - reservedCount);
                     }
                 } 
@@ -580,7 +606,7 @@
                 const reservedCount = activeRes.reduce((sum, r) => sum + (r.quantity || 1), 0);
                 return Math.max(0, totalStock - reservedCount);
             };
-
+            
             const myCart = useMemo(() => {
                 if (!user) return [];
                 return reservations
@@ -588,8 +614,8 @@
                     .map(r => products.find(p => p.id === r.productId) ? { ...products.find(p => p.id === r.productId), ...r } : null)
                     .filter(Boolean);
             }, [reservations, user, now, products]);
-
-            const cartSubtotal = myCart.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+            
+            const cartSubtotal = myCart.reduce((s, i) => s + (Number(i.price || 0) * (i.quantity || 1)), 0);
             
             const shippingCost = useMemo(() => {
                 if (myCart.length === 0) return 0;
@@ -624,7 +650,7 @@
                 let items = [...products];
                 if (searchQuery) {
                     const query = searchQuery.toLowerCase();
-                    items = items.filter(p => p.title.toLowerCase().includes(query) || (p.description && p.description.toLowerCase().includes(query)));
+                    items = items.filter(p => (p.title || "").toLowerCase().includes(query) || (p.description && (p.description || "").toLowerCase().includes(query)));
                 }
                 if (activeCategory !== "All") items = items.filter(p => p.category === activeCategory);
                 if (filterSource === "shop") items = items.filter(p => !p.ebayLink);
@@ -634,10 +660,13 @@
                 else if (filterSource === "local_pickup_available") items = items.filter(p => p.localPickupAvailable || p.localPickupOnly);
 
                 switch (sortBy) {
-                    case "default": items.sort((a, b) => { const aIsShop = !a.ebayLink; const bIsShop = !b.ebayLink; if (aIsShop !== bIsShop) return aIsShop ? -1 : 1; if (a.order !== undefined && b.order !== undefined && a.order !== b.order) return a.order - b.order; return (b.createdAt || "") - (a.createdAt || ""); }); break;
+                    case "default": items.sort((a, b) => { const aIsShop = !a.ebayLink; const bIsShop = !b.ebayLink;
+                        if (aIsShop !== bIsShop) return aIsShop ? -1 : 1;
+                        if (a.order !== undefined && b.order !== undefined && a.order !== b.order) return a.order - b.order;
+                        return (b.createdAt || "") - (a.createdAt || ""); }); break;
                     case "price-asc": items.sort((a, b) => a.price - b.price); break;
                     case "price-desc": items.sort((a, b) => b.price - a.price); break;
-                    case "name-asc": items.sort((a, b) => a.title.localeCompare(b.title)); break;
+                    case "name-asc": items.sort((a, b) => (a.title || "").localeCompare(b.title || "")); break;
                     case "newest": items.sort((a, b) => (b.createdAt || "") - (a.createdAt || "")); break;
                 }
                 return items;
@@ -650,13 +679,11 @@
                     const sizeObj = selectedProduct.sizes.find(s => s.name === selectedSize);
                     price = parseFloat(sizeObj?.price) || selectedProduct.price; isDefault = false;
                 }
-                return { price: price, isDefault: isDefault, sizeName: selectedSize, priceText: price !== null ? `${CONFIG.currencySymbol}${price.toFixed(2)}` : 'Select Size' };
-            }, [selectedProduct, selectedSize]);
+                return { price: price, isDefault: isDefault, sizeName: selectedSize, priceText: price !== null ? `${CONFIG.currencySymbol}${Number(price || 0).toFixed(2)}` : 'Select Size' };
+             }, [selectedProduct, selectedSize]);
 
             const addToCart = async (product, quantity = 1, customInputs = {}, openCart = false, event = null) => {
                 if (!user) return console.error("Connecting... please wait.");
-                
-                // Animation Logic
                 if (event && !openCart && cartIconRef.current) {
                     const imgEl = event.target.closest('.group')?.querySelector('img');
                     if (imgEl) {
@@ -682,7 +709,6 @@
                                 opacity: 0.5
                             });
                         }, 20);
-
                         setTimeout(() => setFlyingImage(null), 700);
                     }
                 }
@@ -700,7 +726,6 @@
                 }
 
                 const expirationDuration = product.unlimitedStock ? (365 * 24 * 60 * 60 * 1000) : CONFIG.reservationTime;
-
                 try {
                     const resCol = window.getCollectionRef('reservations');
                     const reservationData = {
@@ -718,17 +743,17 @@
                     if (selectedSize) reservationData.size = selectedSize;
                     await window.addDoc(resCol, reservationData);
                     
-                    handleCloseModal(); // Always close the preview
+                    handleCloseModal(); 
 
                     if (openCart) {
-                        setIsCartOpen(true); // Only open cart if requested (Buy Now)
+                        setIsCartOpen(true);
                     } else {
-                        setIsCartOpen(false); // Ensure cart stays closed (Add to Cart)
+                        setIsCartOpen(false);
                     }
                     
                 } catch (err) { console.error("Could not add to cart.", err); }
             };
-
+            
             const removeFromCart = async (reservationId) => {
                 try {
                     const docRef = window.getDocRef('reservations', reservationId);
@@ -749,8 +774,9 @@
                 if (shippingZip.length < 3) return null;
                 return getZipState(shippingZip);
             }, [shippingZip]);
-
+            
             const isRestrictedZip = deliveryMethod === 'shipping' && zipStateInfo && zipStateInfo.restricted;
+            
             const handleCheckout = async (e) => {
                 if(e) e.preventDefault();
                 if (CONFIG.paypalEmail === "your-email@example.com") return console.error("Error: Configure PayPal email.");
@@ -766,6 +792,7 @@
                 const params = new URLSearchParams({
                     cmd: "_cart", upload: "1", business: CONFIG.paypalEmail, currency_code: CONFIG.paypalCurrency
                 });
+                
                 myCart.forEach((item, idx) => {
                     const i = idx + 1;
                     let name = item.title;
@@ -778,9 +805,10 @@
 
                     const qty = item.quantity || 1;
                     params.append(`item_name_${i}`, name);
-                    params.append(`amount_${i}`, item.price.toFixed(2));
+                    params.append(`amount_${i}`, Number(item.price || 0).toFixed(2));
                     params.append(`quantity_${i}`, qty);
                 });
+                
                 if (shippingCost !== null && shippingCost > 0) params.append("handling_cart", shippingCost.toFixed(2));
                 
                 window.open(`https://www.paypal.com/cgi-bin/webscr?${params.toString()}`, '_blank');
@@ -799,13 +827,13 @@
                 await batch.commit();
             };
             
-            // --- NEW MODAL OPEN HANDLER ---
             const handleSendInquiry = () => {
                 setShowContactModal(true);
             };
 
             if (isConfigMissing) return <div className="p-10 text-center font-bold text-red-600">Configuration Missing</div>;
-return (
+            
+            return (
                 <div className="min-h-screen pb-20">
                     <header className="bg-white shadow-sm sticky top-0 z-40">
                         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -873,7 +901,6 @@ return (
                         )}
                     </main>
 
-                    {/* NEW CONTACT MODAL COMPONENT RENDERED HERE */}
                     {showContactModal && selectedProduct && (
                         <ContactModal product={selectedProduct} onClose={() => setShowContactModal(false)} CONFIG={CONFIG} />
                     )}
@@ -917,7 +944,7 @@ return (
                                                         </div>
                                                     </div>
                                                     <div className="flex justify-between items-end mt-2 mb-1">
-                                                        <div className="font-bold text-[#0b5394]">{CONFIG.currencySymbol}{item.price.toFixed(2)}</div>
+                                                        <div className="font-bold text-[#0b5394]">{CONFIG.currencySymbol}{Number(item.price || 0).toFixed(2)}</div>
                                                         <div className="flex items-center gap-3">
                                                             {item.unlimitedStock ? (
                                                                 <div className="flex items-center border rounded-lg h-7"><button onClick={() => updateCartQty(item, -1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Minus size={12}/></button><span className="px-2 text-xs font-bold">{item.quantity || 1}</span><button onClick={() => updateCartQty(item, 1)} className="px-2 hover:bg-gray-100 h-full text-gray-600"><Icons.Plus size={12}/></button></div>
@@ -966,7 +993,7 @@ return (
                                             )}
 
                                             <div className="space-y-1">
-                                                <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{CONFIG.currencySymbol}{cartSubtotal.toFixed(2)}</span></div>
+                                                <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{CONFIG.currencySymbol}{Number(cartSubtotal || 0).toFixed(2)}</span></div>
                                                 <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span>{deliveryMethod === 'pickup' ? 'Free (Pickup)' : (shippingCost === null ? '--' : (shippingCost === 0 ? 'FREE' : `${CONFIG.currencySymbol}${shippingCost.toFixed(2)}`))}</span></div>
                                             </div>
                                         </div>
@@ -975,7 +1002,7 @@ return (
 
                                 {myCart.length > 0 && (
                                     <div className="bg-gray-50 p-4 border-t border-gray-200 flex-none z-10 shadow-top safe-area-bottom">
-                                        <div className="flex justify-between text-lg font-bold text-gray-900 mb-3"><span>Total</span><span>{CONFIG.currencySymbol}{((cartSubtotal + (deliveryMethod === 'shipping' ? (shippingCost || 0) : 0))).toFixed(2)}</span></div>
+                                        <div className="flex justify-between text-lg font-bold text-gray-900 mb-3"><span>Total</span><span>{CONFIG.currencySymbol}{Number((cartSubtotal + (deliveryMethod === 'shipping' ? (shippingCost || 0) : 0)) || 0).toFixed(2)}</span></div>
                                         
                                         <div className="flex gap-3">
                                             <button onClick={() => setIsCartOpen(false)} className="flex-1 py-4 rounded-xl font-bold text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors active:scale-95">Continue Shopping</button>
@@ -1043,7 +1070,6 @@ return (
                                         <h2 className="hidden md:block text-3xl font-bold mb-4 text-gray-900">{selectedProduct.title}</h2>
                                         <p className="text-gray-600 mb-6 text-lg leading-relaxed">{selectedProduct.description}</p>
                                         
-                                        {/* PRICE DISPLAY ADDED HERE */}
                                         <div className="text-3xl font-bold text-[#0b5394] mb-6">
                                             {selectedPriceInfo.priceText}
                                         </div>
@@ -1061,7 +1087,7 @@ return (
                                             </div>
                                         )}
 
-                                        {selectedProduct.customFields && selectedProduct.customFields.length > 0 && (
+                                        {selectedProduct.customFields && selectedProduct.customFields.length > 0 && Array.isArray(selectedProduct.customFields) && (
                                             <div className="mb-6 space-y-4 bg-gray-200 p-4 rounded-xl border border-gray-300">
                                                 {selectedProduct.customFields.map((field, idx) => (
                                                     <div key={idx}>
@@ -1089,7 +1115,7 @@ return (
                                             </div>
                                         )}
 
-                                        {selectedProduct.unlimitedStock && !selectedProduct.hasSizes && (
+                                        {selectedProduct.unlimitedStock && !(selectedProduct.sizes && selectedProduct.sizes.length > 0) && (
                                             <div className="flex items-center gap-3 mb-6 p-3 bg-gray-200 rounded-xl border border-gray-300 w-fit">
                                                 <span className="text-sm font-bold text-gray-700">Quantity:</span>
                                                 <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -1105,12 +1131,12 @@ return (
                                                 <a href={selectedProduct.ebayLink} target="_blank" rel="noopener noreferrer" className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-95">View on eBay <Icons.External size={18}/></a>
                                             ) : (
                                                 <React.Fragment>
-                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300'}`}>
+                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-bold transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 hover:border-gray-300'}`}>
                                                         Add to Cart 
                                                         {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className={`text-sm font-bold ${selectedSize ? 'text-gray-500' : 'text-red-500'} mt-1`}>{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
-                                                        {(selectedProduct.customFields && selectedProduct.customFields.length > 0 && selectedProduct.customFields.some(f => !customFieldValues[f.label])) && <span className="text-[10px] text-red-500 font-normal">Fill options</span>}
+                                                        {(selectedProduct.customFields && selectedProduct.customFields.length > 0 && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label])) && <span className="text-[10px] text-red-500 font-normal">Fill options</span>}
                                                     </button>
-                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 hover:bg-red-700' : 'bg-[#0b5394] hover:bg-blue-700'}`}>
+                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 hover:bg-red-700' : 'bg-[#0b5394] hover:bg-blue-700'}`}>
                                                         Buy Now 
                                                         {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className="text-sm font-bold text-white/90 mt-1">{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
                                                     </button>
@@ -1126,11 +1152,11 @@ return (
                                                 <a href={selectedProduct.ebayLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">View on eBay <Icons.External size={18}/></a>
                                             ) : (
                                                 <React.Fragment>
-                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border border-gray-300 bg-white text-gray-700 rounded-xl font-bold transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'active:bg-gray-50'}`}>
+                                                    <button onClick={() => addToCart(selectedProduct, modalQty, customFieldValues, false)} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 border border-gray-300 bg-white text-gray-700 rounded-xl font-bold transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'opacity-50 cursor-not-allowed' : 'active:bg-gray-50'}`}>
                                                         <span className="text-sm">Add to Cart</span>
                                                         {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className={`text-xs font-bold ${selectedSize ? 'text-gray-500' : 'text-red-500'}`}>{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
                                                     </button>
-                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 active:bg-red-700' : 'bg-[#0b5394] active:bg-blue-700'}`}>
+                                                    <button onClick={async () => { await addToCart(selectedProduct, modalQty, customFieldValues, true); }} disabled={(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label]))} className={`flex-1 py-3 text-white rounded-xl font-bold shadow-lg transition-all flex flex-col justify-center items-center ${(selectedProduct.sizes && selectedProduct.sizes.length > 0 && !selectedSize) || (selectedProduct.customFields && Array.isArray(selectedProduct.customFields) && selectedProduct.customFields.some(f => !customFieldValues[f.label])) ? 'bg-gray-400 cursor-not-allowed' : selectedProduct.sale ? 'bg-red-600 active:bg-red-700' : 'bg-[#0b5394] active:bg-blue-700'}`}>
                                                         <span className="text-sm">Buy Now</span>
                                                         {(selectedProduct.sizes && selectedProduct.sizes.length > 0) && <span className="text-xs font-bold text-white/90">{selectedSize ? selectedPriceInfo.priceText : 'Select Size'}</span>}
                                                     </button>
@@ -1138,7 +1164,6 @@ return (
                                             )}
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     )}
@@ -1146,8 +1171,43 @@ return (
             );
         };
 
+        // --- GLOBAL ERROR BOUNDARY ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error: error };
+            }
+            componentDidCatch(error, errorInfo) {
+                this.setState({ errorInfo: errorInfo });
+                console.error("React Error Caught:", error, errorInfo);
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-8 m-8 bg-white text-red-600 rounded-xl shadow-xl border border-red-200">
+                            <h2 className="text-2xl font-bold mb-4">React App Crashed</h2>
+                            <p className="mb-4 text-gray-800">The app encountered a critical rendering error. Please provide this stack trace to troubleshoot:</p>
+                            <pre className="bg-gray-100 p-4 rounded overflow-auto text-xs text-gray-800">
+                                {this.state.error && this.state.error.toString()}
+                                <br />
+                                {this.state.errorInfo && this.state.errorInfo.componentStack}
+                            </pre>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
