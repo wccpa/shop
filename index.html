@@ -17,6 +17,10 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <style>
         html, body { background-color: #e5e7eb; height: 100%; margin: 0; padding: 0; -webkit-overflow-scrolling: touch; }
@@ -33,7 +37,6 @@
         .shadow-top { box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06); }
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
-        /* Hidden iframe for form submission */
         #hidden_iframe { display: none; }
     </style>
 </head>
@@ -53,73 +56,24 @@
             measurementId: "G-1QD89WKEV5"
         };
 
-        window.firebaseConfig = null;
+        window.firebaseConfig = YOUR_FIREBASE_CONFIG;
         window.appId = 'default-shop';
         window.isUsingEnvConfig = false;
         window.firebaseReady = false;
         
         try {
-            if (YOUR_FIREBASE_CONFIG.apiKey !== "PASTE_YOUR_API_KEY_HERE") {
-                window.firebaseConfig = YOUR_FIREBASE_CONFIG;
-                window.isUsingEnvConfig = false;
-            } else if (typeof __firebase_config !== 'undefined') {
+            if (typeof __firebase_config !== 'undefined') {
                 window.firebaseConfig = JSON.parse(__firebase_config);
                 window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 window.isUsingEnvConfig = true;
             }
         } catch(e) { console.error("Config Setup Error:", e); }
 
-        if (window.firebaseConfig) {
-            // Use Dynamic Imports to prevent "Cannot use import statement outside a module"
-            Promise.all([
-                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"),
-                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"),
-                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js")
-            ]).then(function(modules) {
-                const appMod = modules[0];
-                const fsMod = modules[1];
-                const authMod = modules[2];
-
-                const app = appMod.initializeApp(window.firebaseConfig);
-                window.db = fsMod.getFirestore(app);
-                window.auth = authMod.getAuth(app);
-                
-                window.collection = fsMod.collection;
-                window.addDoc = fsMod.addDoc;
-                window.updateDoc = fsMod.updateDoc;
-                window.deleteDoc = fsMod.deleteDoc;
-                window.doc = fsMod.doc;
-                window.getDoc = fsMod.getDoc;
-                window.onSnapshot = fsMod.onSnapshot;
-                window.signInAnonymously = authMod.signInAnonymously;
-                window.signInWithCustomToken = authMod.signInWithCustomToken;
-                window.onAuthStateChanged = authMod.onAuthStateChanged;
-                window.increment = fsMod.increment;
-                window.getDocs = fsMod.getDocs;
-                window.where = fsMod.where;
-                window.query = fsMod.query;
-                window.writeBatch = fsMod.writeBatch;
-
-                window.getCollectionRef = function(collectionName) {
-                    if (window.isUsingEnvConfig) {
-                        return window.collection(window.db, 'artifacts', window.appId, 'public', 'data', collectionName);
-                    } else {
-                        return window.collection(window.db, collectionName);
-                    }
-                };
-                window.getDocRef = function(collectionName, docId) {
-                     if (window.isUsingEnvConfig) {
-                        return window.doc(window.db, 'artifacts', window.appId, 'public', 'data', collectionName, docId);
-                    } else {
-                        return window.doc(window.db, collectionName, docId);
-                    }
-                };
-                
-                window.firebaseReady = true;
-                console.log("Firebase initialized successfully via dynamic imports.");
-            }).catch(function(error) {
-                console.error("Failed to load Firebase modules dynamically:", error);
-            });
+        if (window.firebaseConfig && !firebase.apps.length) {
+            firebase.initializeApp(window.firebaseConfig);
+            window.db = firebase.firestore();
+            window.auth = firebase.auth();
+            window.firebaseReady = true;
         }
     </script>
 
@@ -161,10 +115,8 @@
             paypalEmail: "bryan.wedekind@gmail.com", 
             paypalCurrency: "USD",
             
-            // --- GOOGLE FORM CONFIGURATION (AUTO FILLED) ---
             googleFormActionUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdA2pDdwDZ027zsxaBiiUACqpNoauszbG3iftFCRGkbOr24KA/formResponse", 
             
-            // IDS EXTRACTED FROM YOUR LINK:
             formIds: {
                 item: "entry.1262435633",     // Item Name
                 link: "entry.481835721",      // Link to Item
@@ -187,6 +139,14 @@
                 zoneSurchargeMultiplier: 0.50 
             },
             reservationTime: 30 * 60 * 1000 
+        };
+
+        // Custom Helper to replace the v9 Collection Ref getter
+        const getCol = (colName) => {
+            if (window.isUsingEnvConfig) {
+                return window.db.collection('artifacts').doc(window.appId).collection('public').doc('data').collection(colName);
+            }
+            return window.db.collection(colName);
         };
         
         const ContactModal = ({ product, onClose, CONFIG }) => {
@@ -511,25 +471,24 @@
                 // Fire this up ONLY when the module has securely bound to the window object
                 const initApp = async () => {
                     if (window.isUsingEnvConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await window.signInWithCustomToken(window.auth, __initial_auth_token);
+                        await window.auth.signInWithCustomToken(__initial_auth_token);
                     } else {
-                        await window.signInAnonymously(window.auth);
+                        await window.auth.signInAnonymously();
                     }
-                    unsubscribeAuth = window.onAuthStateChanged(window.auth, (u) => setUser(u));
-                    const prodCol = window.getCollectionRef('products');
-                    const resCol = window.getCollectionRef('reservations');
+                    unsubscribeAuth = window.auth.onAuthStateChanged((u) => setUser(u));
+                    const prodCol = getCol('products');
+                    const resCol = getCol('reservations');
                     
-                    unsubscribeProd = window.onSnapshot(prodCol, (snapshot) => {
+                    unsubscribeProd = prodCol.onSnapshot((snapshot) => {
                         setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     }, (error) => console.error(error));
                     
-                    unsubscribeRes = window.onSnapshot(resCol, (snapshot) => {
+                    unsubscribeRes = resCol.onSnapshot((snapshot) => {
                         setReservations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     });
                     timerInterval = setInterval(() => setNow(Date.now()), 1000);
                 };
 
-                // Polling to fix the Babel vs Module race condition
                 const checkFirebase = () => {
                     if (window.firebaseReady === true) {
                         initApp();
@@ -727,7 +686,7 @@
 
                 const expirationDuration = product.unlimitedStock ? (365 * 24 * 60 * 60 * 1000) : CONFIG.reservationTime;
                 try {
-                    const resCol = window.getCollectionRef('reservations');
+                    const resCol = getCol('reservations');
                     const reservationData = {
                         productId: product.id,
                         userId: user.uid,
@@ -741,7 +700,7 @@
                         customInputs: customInputs
                     };
                     if (selectedSize) reservationData.size = selectedSize;
-                    await window.addDoc(resCol, reservationData);
+                    await resCol.add(reservationData);
                     
                     handleCloseModal(); 
 
@@ -756,8 +715,8 @@
             
             const removeFromCart = async (reservationId) => {
                 try {
-                    const docRef = window.getDocRef('reservations', reservationId);
-                    await window.deleteDoc(docRef);
+                    const docRef = getCol('reservations').doc(reservationId);
+                    await docRef.delete();
                 } catch (err) { console.error(err); }
             };
             
@@ -765,8 +724,8 @@
                 try {
                     const newQty = (item.quantity || 1) + delta;
                     if (newQty < 1) return removeFromCart(item.id);
-                    const docRef = window.getDocRef('reservations', item.id);
-                    await window.updateDoc(docRef, { quantity: newQty });
+                    const docRef = getCol('reservations').doc(item.id);
+                    await docRef.update({ quantity: newQty });
                 } catch (err) { console.error("Update qty failed", err); }
             };
             
@@ -814,14 +773,14 @@
                 window.open(`https://www.paypal.com/cgi-bin/webscr?${params.toString()}`, '_blank');
                 setIsCartOpen(false);
 
-                const batch = window.writeBatch(window.db);
+                const batch = window.db.batch();
                 for (const item of myCart) {
-                    const resRef = window.getDocRef('reservations', item.id);
-                    const prodRef = window.getDocRef('products', item.productId);
+                    const resRef = getCol('reservations').doc(item.id);
+                    const prodRef = getCol('products').doc(item.productId);
                     batch.delete(resRef);
                     if (!item.unlimitedStock) {
                         const qty = item.quantity || 1;
-                        if (!item.size) batch.update(prodRef, { stock: window.increment(-qty) });
+                        if (!item.size) batch.update(prodRef, { stock: firebase.firestore.FieldValue.increment(-qty) });
                     }
                 }
                 await batch.commit();
